@@ -274,86 +274,6 @@ async def remove_item(interaction: discord.Interaction, player: discord.Member, 
         )
 
 
-# Merchant Commands
-@bot.tree.command(name="shop", description="View available items in the shop")
-async def shop(interaction: discord.Interaction):
-    """View shop items."""
-    if not storage:
-        await interaction.response.send_message("Storage not configured!", ephemeral=True)
-        return
-    
-    items = storage.get_shop_items()
-    
-    embed = discord.Embed(
-        title="🏪 Merchant Shop",
-        description="Welcome to the shop! Use `/buy` to purchase items.",
-        color=discord.Color.gold()
-    )
-    
-    if items:
-        for item in items:
-            embed.add_field(
-                name=f"{item['name']} - {item['price']} gold",
-                value=item['description'],
-                inline=False
-            )
-    else:
-        embed.description = "The shop is currently empty!"
-    
-    await interaction.response.send_message(embed=embed)
-
-
-@bot.tree.command(name="buy", description="Buy an item from the shop")
-@app_commands.describe(item="Name of the item to buy")
-async def buy(interaction: discord.Interaction, item: str):
-    """Buy an item from the shop."""
-    if not storage:
-        await interaction.response.send_message("Storage not configured!", ephemeral=True)
-        return
-    
-    # Get shop items
-    shop_items = storage.get_shop_items()
-    shop_item = None
-    
-    for si in shop_items:
-        if si['name'].lower() == item.lower():
-            shop_item = si
-            break
-    
-    if not shop_item:
-        await interaction.response.send_message(
-            f"❌ **{item}** is not available in the shop!",
-            ephemeral=True
-        )
-        return
-    
-    # Get player data
-    player_id = str(interaction.user.id)
-    player = storage.get_player(player_id)
-    
-    if not player:
-        player = storage.create_player(player_id, interaction.user.display_name)
-    
-    # Check if player has enough gold
-    if player['gold'] < shop_item['price']:
-        await interaction.response.send_message(
-            f"❌ You don't have enough gold! You need {shop_item['price']} gold but only have {player['gold']} gold.",
-            ephemeral=True
-        )
-        return
-    
-    # Purchase item
-    new_gold = player['gold'] - shop_item['price']
-    inventory = player['inventory']
-    inventory.append(shop_item['name'])
-    
-    storage.update_player(player_id, gold=new_gold, inventory=inventory)
-    
-    await interaction.response.send_message(
-        f"✅ Purchased **{shop_item['name']}** for {shop_item['price']} gold! You now have {new_gold} gold remaining."
-    )
-
-
 @bot.tree.command(name="help", description="Show all available commands")
 async def help_command(interaction: discord.Interaction):
     """Show help information."""
@@ -367,9 +287,7 @@ async def help_command(interaction: discord.Interaction):
         name="📊 Player Commands",
         value=(
             "`/profile` - View your character profile\n"
-            "`/inventory` - View your inventory\n"
-            "`/shop` - Browse the merchant's shop\n"
-            "`/buy <item>` - Purchase an item from the shop"
+            "`/inventory` - View your inventory"
         ),
         inline=False
     )

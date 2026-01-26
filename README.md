@@ -1,12 +1,14 @@
 # Player Tracker - Discord TTRPG Bot
 
-A Discord bot for tracking player inventory, XP, and gold in tabletop RPG campaigns. Features GM commands for managing players and a merchant system for in-game shopping.
+A Discord bot system for tracking player inventory, XP, and gold in tabletop RPG campaigns. Features two bots: a main player tracker and a separate merchant bot for in-game shopping with inventory management.
 
 ## Features
 
 - **Player Management**: Track XP, gold, and inventory for each player
 - **GM Commands**: Add/remove XP, gold, and items from players
-- **Merchant System**: Players can browse and purchase items from a shop
+- **Merchant System**: Separate bot for managing shops with custom item lists and stock tracking
+- **Inventory Tracking**: Items can have limited stock that decreases with purchases
+- **Quantity Purchases**: Buy multiple items at once with the `/buy` command
 - **Google Sheets Backend**: All data is stored in Google Sheets for easy access and editing
 
 ## Setup
@@ -14,7 +16,9 @@ A Discord bot for tracking player inventory, XP, and gold in tabletop RPG campai
 ### Prerequisites
 
 - Python 3.8 or higher
-- A Discord Bot Token ([Create one here](https://discord.com/developers/applications))
+- Two Discord Bot Tokens ([Create them here](https://discord.com/developers/applications))
+  - One for the main player tracker bot
+  - One for the merchant bot
 - A Google Cloud Project with Sheets API enabled ([Guide](https://developers.google.com/sheets/api/quickstart/python))
 - Google Service Account credentials JSON file
 
@@ -39,6 +43,7 @@ cp .env.example .env
 4. Configure your `.env` file:
 ```env
 DISCORD_TOKEN=your_discord_bot_token_here
+MERCHANT_BOT_TOKEN=your_merchant_bot_token_here
 GOOGLE_SHEET_ID=your_google_sheet_id_here
 GM_ROLE_ID=your_gm_role_id_here  # Optional
 ```
@@ -54,30 +59,36 @@ GM_ROLE_ID=your_gm_role_id_here  # Optional
 
 The bot will automatically create the required worksheets:
 - **Players**: Stores player data (ID, Name, XP, Gold, Inventory)
-- **Shop**: Stores merchant items (Item Name, Price, Description)
+- **Shop**: Stores merchant items (Item Name, Price, Description, Stock)
 
 ### Discord Bot Setup
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application and add a bot
-3. Enable these intents in the Bot section:
+2. Create **two** applications (one for main bot, one for merchant bot)
+3. For each application, add a bot and enable these intents in the Bot section:
    - MESSAGE CONTENT INTENT
    - SERVER MEMBERS INTENT
-4. Copy the bot token and add it to your `.env` file
-5. Invite the bot to your server using this URL (replace `YOUR_CLIENT_ID`):
+4. Copy both bot tokens and add them to your `.env` file as `DISCORD_TOKEN` and `MERCHANT_BOT_TOKEN`
+5. Invite both bots to your server using this URL for each (replace `YOUR_CLIENT_ID`):
 ```
 https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=2048&scope=bot%20applications.commands
 ```
 
 ## Usage
 
-### Running the Bot Locally
+### Running the Bots Locally
 
+To run the main player tracker bot:
 ```bash
 python bot.py
 ```
 
-The bot will connect to Discord and sync all slash commands.
+To run the merchant bot (in a separate terminal):
+```bash
+python merchant_bot.py
+```
+
+Both bots will connect to Discord and sync their slash commands.
 
 ### Deploying on Oracle VM (or any Linux server)
 
@@ -146,15 +157,19 @@ pip install -r requirements.txt
 
 ### Player Commands
 
+**Main Bot:**
 - `/profile` - View your character profile with XP, gold, and inventory
 - `/inventory` - View your inventory in detail
+- `/help` - Show all available player commands
+
+**Merchant Bot:**
 - `/shop` - Browse items available in the merchant's shop
-- `/buy <item>` - Purchase an item from the shop
-- `/help` - Show all available commands
+- `/buy <item> [quantity]` - Purchase items from the shop (quantity defaults to 1)
+- `/help` - Show all available merchant commands
 
 ### GM Commands
 
-These commands require the GM role (or administrator permissions):
+**Main Bot** - These commands require the GM role (or administrator permissions):
 
 - `/add_xp <player> <amount>` - Add XP to a player
 - `/remove_xp <player> <amount>` - Remove XP from a player
@@ -163,18 +178,38 @@ These commands require the GM role (or administrator permissions):
 - `/give_item <player> <item>` - Give an item to a player
 - `/remove_item <player> <item>` - Remove an item from a player
 
+**Merchant Bot** - These commands require the GM role (or administrator permissions):
+
+- `/add_item <name> <price> <description> [stock]` - Add a new item to the shop (stock defaults to -1 for unlimited)
+- `/remove_shop_item <item>` - Remove an item from the shop
+- `/restock <item> <quantity>` - Update item stock quantity (-1 for unlimited)
+- `/clear_shop` - Clear all items from the shop
+
 ### Editing Shop Items
 
 You can edit shop items directly in the Google Sheet:
 
 1. Open your Google Sheet
 2. Go to the "Shop" worksheet
-3. Add/edit/remove items with columns: Item Name, Price, Description
-4. Changes are reflected immediately in the bot
+3. Add/edit/remove items with columns: Item Name, Price, Description, Stock
+4. Stock values: -1 for unlimited, 0 for out of stock, or any positive number for limited quantity
+5. Changes are reflected immediately in both bots
+
+### Creating Custom Item Lists
+
+Using the merchant bot's GM commands, you can create custom shops for different scenarios:
+
+1. Use `/clear_shop` to start fresh (optional)
+2. Add items with `/add_item`:
+   - Example: `/add_item name:Healing Potion price:50 description:Restores 50 HP stock:10`
+   - Example: `/add_item name:Magic Scroll price:100 description:One-time spell stock:-1` (unlimited)
+3. Players can view with `/shop` and buy with `/buy`
+4. Restock items as needed with `/restock`
 
 ## Architecture
 
-- **bot.py**: Main Discord bot with all commands
+- **bot.py**: Main Discord bot for player tracking (XP, gold, inventory)
+- **merchant_bot.py**: Separate Discord bot for merchant/shop system
 - **storage.py**: Google Sheets integration for data persistence
 - **requirements.txt**: Python dependencies
 - **.env**: Configuration file (not committed to git)

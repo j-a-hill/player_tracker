@@ -49,12 +49,12 @@ class PlayerStorage:
             self.shop_sheet = self.spreadsheet.worksheet('Shop')
         except gspread.exceptions.WorksheetNotFound:
             self.shop_sheet = self.spreadsheet.add_worksheet('Shop', 100, 10)
-            self.shop_sheet.append_row(['Item Name', 'Price', 'Description'])
+            self.shop_sheet.append_row(['Item Name', 'Price', 'Description', 'Stock'])
             # Add some default items
-            self.shop_sheet.append_row(['Health Potion', '50', 'Restores 50 HP'])
-            self.shop_sheet.append_row(['Mana Potion', '40', 'Restores 30 MP'])
-            self.shop_sheet.append_row(['Sword', '100', 'A basic sword'])
-            self.shop_sheet.append_row(['Shield', '80', 'A basic shield'])
+            self.shop_sheet.append_row(['Health Potion', '50', 'Restores 50 HP', '10'])
+            self.shop_sheet.append_row(['Mana Potion', '40', 'Restores 30 MP', '10'])
+            self.shop_sheet.append_row(['Sword', '100', 'A basic sword', '5'])
+            self.shop_sheet.append_row(['Shield', '80', 'A basic shield', '5'])
     
     def get_player(self, player_id: str) -> Optional[Dict]:
         """Get player data by Discord ID."""
@@ -143,18 +143,84 @@ class PlayerStorage:
         try:
             records = self.shop_sheet.get_all_records()
             items = []
-            for record in records:
+            for idx, record in enumerate(records, start=2):  # Start at 2 (header is row 1)
                 try:
                     price = int(record.get('Price', 0))
                 except (ValueError, TypeError):
                     price = 0
                 
+                try:
+                    stock = int(record.get('Stock', -1))  # -1 means unlimited
+                except (ValueError, TypeError):
+                    stock = -1
+                
                 items.append({
                     'name': record.get('Item Name', ''),
                     'price': price,
-                    'description': record.get('Description', '')
+                    'description': record.get('Description', ''),
+                    'stock': stock,
+                    'row': idx
                 })
             return items
         except Exception as e:
             print(f"Error getting shop items: {e}")
             return []
+    
+    def update_item_stock(self, item_name: str, new_stock: int):
+        """Update stock for a shop item."""
+        if not self.shop_sheet:
+            return False
+            
+        try:
+            items = self.get_shop_items()
+            for item in items:
+                if item['name'].lower() == item_name.lower():
+                    self.shop_sheet.update_cell(item['row'], 4, new_stock)
+                    return True
+            return False
+        except Exception as e:
+            print(f"Error updating stock: {e}")
+            return False
+    
+    def add_shop_item(self, name: str, price: int, description: str, stock: int = -1):
+        """Add a new item to the shop."""
+        if not self.shop_sheet:
+            return False
+            
+        try:
+            self.shop_sheet.append_row([name, price, description, stock])
+            return True
+        except Exception as e:
+            print(f"Error adding shop item: {e}")
+            return False
+    
+    def remove_shop_item(self, item_name: str):
+        """Remove an item from the shop."""
+        if not self.shop_sheet:
+            return False
+            
+        try:
+            items = self.get_shop_items()
+            for item in items:
+                if item['name'].lower() == item_name.lower():
+                    self.shop_sheet.delete_rows(item['row'])
+                    return True
+            return False
+        except Exception as e:
+            print(f"Error removing shop item: {e}")
+            return False
+    
+    def clear_shop(self):
+        """Clear all shop items (keeping headers)."""
+        if not self.shop_sheet:
+            return False
+            
+        try:
+            # Get all rows except header
+            num_rows = len(self.shop_sheet.get_all_values())
+            if num_rows > 1:
+                self.shop_sheet.delete_rows(2, num_rows)
+            return True
+        except Exception as e:
+            print(f"Error clearing shop: {e}")
+            return False
