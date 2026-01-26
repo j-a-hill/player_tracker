@@ -1,4 +1,4 @@
-# Player Tracker - Discord TTRPG Bot
+# Player Tracker - Discord D&D 5e Bot
 
 A Discord bot system for tracking player inventory, XP, and gold in tabletop RPG campaigns. Features two bots: a main player tracker and a separate merchant bot for in-game shopping with inventory management.
 
@@ -171,10 +171,17 @@ pip install -r requirements.txt
 
 **Main Bot** - These commands require the GM role (or administrator permissions):
 
-- `/add_xp <player> <amount>` - Add XP to a player
+**XP Management:**
+- `/add_xp <player> <amount>` - Add XP to a player (displays level-up message when thresholds are reached!)
 - `/remove_xp <player> <amount>` - Remove XP from a player
-- `/add_gold <player> <amount>` - Give gold to a player
-- `/remove_gold <player> <amount>` - Remove gold from a player
+
+**Currency Management:**
+- `/add_currency <player> <amount> <type>` - Add any type of currency (cp, sp, ep, gp, pp)
+- `/remove_currency <player> <amount> <type>` - Remove any type of currency
+- `/add_gold <player> <amount>` - Quick command to add gold
+- `/remove_gold <player> <amount>` - Quick command to remove gold
+
+**Inventory Management:**
 - `/give_item <player> <item>` - Give an item to a player
 - `/remove_item <player> <item>` - Remove an item from a player
 
@@ -211,6 +218,7 @@ Using the merchant bot's GM commands, you can create custom shops for different 
 - **bot.py**: Main Discord bot for player tracking (XP, gold, inventory)
 - **merchant_bot.py**: Separate Discord bot for merchant/shop system
 - **storage.py**: Google Sheets integration for data persistence
+- **dnd_utils.py**: D&D 5e game mechanics (XP thresholds, currency conversion, level calculations)
 - **requirements.txt**: Python dependencies
 - **.env**: Configuration file (not committed to git)
 - **credentials.json**: Google service account credentials (not committed to git)
