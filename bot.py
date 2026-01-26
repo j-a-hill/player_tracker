@@ -15,6 +15,8 @@ load_dotenv()
 
 # Bot configuration
 TOKEN = os.getenv('DISCORD_TOKEN')
+if TOKEN:
+    TOKEN = TOKEN.strip()  # Remove any leading/trailing whitespace
 SHEET_ID = os.getenv('GOOGLE_SHEET_ID')
 GM_ROLE_ID = os.getenv('GM_ROLE_ID')
 
@@ -395,6 +397,19 @@ if __name__ == '__main__':
     if not TOKEN:
         print("Error: DISCORD_TOKEN not found in environment variables!")
         print("Please create a .env file with your Discord bot token.")
+        print("\nSteps to fix:")
+        print("1. Copy .env.example to .env")
+        print("2. Edit .env and add your Discord bot token to DISCORD_TOKEN=...")
+        print("3. Make sure there are no extra spaces or newlines in the token")
         exit(1)
     
+    # Validate token format (Discord tokens are typically 59+ characters)
+    if len(TOKEN) < 50:
+        print(f"Warning: Discord token seems too short ({len(TOKEN)} characters)")
+        print("Discord bot tokens are typically 59 or more characters long.")
+        print("Please verify you have the correct token from https://discord.com/developers/applications")
+        print("\nCurrent token preview (first 10 chars): " + TOKEN[:10] + "...")
+        exit(1)
+    
+    print(f"Starting bot with token: {TOKEN[:10]}...{TOKEN[-5:]}")
     bot.run(TOKEN)
