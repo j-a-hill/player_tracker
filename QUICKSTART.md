@@ -154,3 +154,59 @@ If you have the GM role or admin permissions:
 ## Need Help?
 
 Check the main README.md for more detailed information and documentation.
+
+## Deploying on Oracle VM (Production)
+
+If you want to run the bot on an Oracle VM (or any Linux server) as a persistent service:
+
+### 1. Set Up on Your VM
+
+SSH into your Oracle VM and clone the repository:
+```bash
+git clone https://github.com/j-a-hill/player_tracker.git
+cd player_tracker
+```
+
+### 2. Configure Your Environment
+
+Set up your `.env` file and `credentials.json` as described in steps 4-6 above.
+
+### 3. Deploy as a Service
+
+Run the deployment script:
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+This will:
+- Create a Python virtual environment
+- Install all dependencies in the venv
+- Set up a systemd service to run the bot
+- Configure auto-restart on failure
+
+### 4. Manage Your Bot
+
+Use the provided scripts:
+```bash
+./start.sh      # Start the bot
+./stop.sh       # Stop the bot
+./restart.sh    # Restart the bot (useful after code updates)
+./status.sh     # Check if bot is running
+./logs.sh -f    # View live logs
+```
+
+### 5. Enable Auto-start (Optional)
+
+If you want the bot to start automatically when the VM reboots:
+```bash
+sudo systemctl enable player_tracker
+```
+
+### Benefits of Service Deployment
+
+- **Auto-restart**: Bot automatically restarts if it crashes
+- **Background execution**: Runs in the background, SSH session can be closed
+- **Easy management**: Simple commands to start/stop/restart
+- **Logging**: All output is captured by systemd for easy debugging
+- **Boot persistence**: Can auto-start when server reboots
