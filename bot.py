@@ -34,8 +34,13 @@ def is_gm():
             # If no GM role is set, allow server admins
             return interaction.user.guild_permissions.administrator
         
-        role = discord.utils.get(interaction.user.roles, id=int(GM_ROLE_ID))
-        return role is not None or interaction.user.guild_permissions.administrator
+        try:
+            role_id = int(GM_ROLE_ID)
+            role = discord.utils.get(interaction.user.roles, id=role_id)
+            return role is not None or interaction.user.guild_permissions.administrator
+        except (ValueError, TypeError):
+            # If role ID is invalid, fall back to admin check
+            return interaction.user.guild_permissions.administrator
     
     return app_commands.check(predicate)
 

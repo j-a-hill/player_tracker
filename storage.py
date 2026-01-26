@@ -72,11 +72,21 @@ class PlayerStorage:
                         except json.JSONDecodeError:
                             inventory = []
                     
+                    try:
+                        xp = int(record.get('XP', 0))
+                    except (ValueError, TypeError):
+                        xp = 0
+                    
+                    try:
+                        gold = int(record.get('Gold', 0))
+                    except (ValueError, TypeError):
+                        gold = 0
+                    
                     return {
                         'player_id': str(record.get('Player ID')),
                         'name': record.get('Name', ''),
-                        'xp': int(record.get('XP', 0)),
-                        'gold': int(record.get('Gold', 0)),
+                        'xp': xp,
+                        'gold': gold,
                         'inventory': inventory,
                         'row': idx
                     }
@@ -132,14 +142,19 @@ class PlayerStorage:
             
         try:
             records = self.shop_sheet.get_all_records()
-            return [
-                {
+            items = []
+            for record in records:
+                try:
+                    price = int(record.get('Price', 0))
+                except (ValueError, TypeError):
+                    price = 0
+                
+                items.append({
                     'name': record.get('Item Name', ''),
-                    'price': int(record.get('Price', 0)),
+                    'price': price,
                     'description': record.get('Description', '')
-                }
-                for record in records
-            ]
+                })
+            return items
         except Exception as e:
             print(f"Error getting shop items: {e}")
             return []
