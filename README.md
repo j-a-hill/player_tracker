@@ -1,12 +1,16 @@
-# Player Tracker - Discord TTRPG Bot
+# Player Tracker - Discord D&D 5e Bot
 
-A Discord bot for tracking player inventory, XP, and gold in tabletop RPG campaigns. Features GM commands for managing players and a merchant system for in-game shopping.
+A Discord bot for tracking player inventory, XP, and currency in D&D 5e campaigns. Features GM commands for managing players, automatic level-up notifications, and a merchant system with multi-currency support.
 
 ## Features
 
-- **Player Management**: Track XP, gold, and inventory for each player
-- **GM Commands**: Add/remove XP, gold, and items from players
-- **Merchant System**: Players can browse and purchase items from a shop
+- **D&D 5e Level System**: Automatic level tracking from 1-20 with official XP thresholds
+- **XP Progress Tracking**: Visual progress bars showing XP needed for next level
+- **Level-Up Notifications**: Celebratory messages when players reach new levels
+- **Multi-Currency System**: Full support for D&D 5e currencies (copper, silver, electrum, gold, platinum)
+- **Player Management**: Track XP, currency, and inventory for each player
+- **GM Commands**: Add/remove XP, currency, and items from players
+- **Merchant System**: Players can browse and purchase items from a shop with multi-currency pricing
 - **Google Sheets Backend**: All data is stored in Google Sheets for easy access and editing
 
 ## Setup
@@ -53,8 +57,8 @@ GM_ROLE_ID=your_gm_role_id_here  # Optional
 4. Add the Sheet ID to your `.env` file
 
 The bot will automatically create the required worksheets:
-- **Players**: Stores player data (ID, Name, XP, Gold, Inventory)
-- **Shop**: Stores merchant items (Item Name, Price, Description)
+- **Players**: Stores player data (ID, Name, XP, Copper, Silver, Electrum, Gold, Platinum, Inventory)
+- **Shop**: Stores merchant items (Item Name, Price, Currency, Description)
 
 ### Discord Bot Setup
 
@@ -146,22 +150,50 @@ pip install -r requirements.txt
 
 ### Player Commands
 
-- `/profile` - View your character profile with XP, gold, and inventory
-- `/inventory` - View your inventory in detail
+- `/profile` - View your character profile with level, XP progress bar, currency, and inventory
+- `/inventory` - View your inventory and all currency types
 - `/shop` - Browse items available in the merchant's shop
-- `/buy <item>` - Purchase an item from the shop
+- `/buy <item>` - Purchase an item from the shop (supports all currency types)
 - `/help` - Show all available commands
 
 ### GM Commands
 
 These commands require the GM role (or administrator permissions):
 
-- `/add_xp <player> <amount>` - Add XP to a player
+**XP Management:**
+- `/add_xp <player> <amount>` - Add XP to a player (displays level-up message when thresholds are reached!)
 - `/remove_xp <player> <amount>` - Remove XP from a player
-- `/add_gold <player> <amount>` - Give gold to a player
-- `/remove_gold <player> <amount>` - Remove gold from a player
+
+**Currency Management:**
+- `/add_currency <player> <amount> <type>` - Add any type of currency (cp, sp, ep, gp, pp)
+- `/remove_currency <player> <amount> <type>` - Remove any type of currency
+- `/add_gold <player> <amount>` - Quick command to add gold
+- `/remove_gold <player> <amount>` - Quick command to remove gold
+
+**Inventory Management:**
 - `/give_item <player> <item>` - Give an item to a player
 - `/remove_item <player> <item>` - Remove an item from a player
+
+### D&D 5e Currency System
+
+The bot supports all five D&D 5e currency types:
+- **cp** - Copper pieces
+- **sp** - Silver pieces (10 cp = 1 sp)
+- **ep** - Electrum pieces (50 cp = 1 ep)
+- **gp** - Gold pieces (100 cp = 1 gp)
+- **pp** - Platinum pieces (1000 cp = 1 pp)
+
+### Level System
+
+The bot uses official D&D 5e XP thresholds for levels 1-20:
+- Level 1: 0 XP
+- Level 2: 300 XP
+- Level 3: 900 XP
+- Level 4: 2,700 XP
+- Level 5: 6,500 XP
+- ... and so on up to Level 20: 355,000 XP
+
+When a player gains enough XP to level up, the bot displays a special celebration message with the new level!
 
 ### Editing Shop Items
 
@@ -169,13 +201,14 @@ You can edit shop items directly in the Google Sheet:
 
 1. Open your Google Sheet
 2. Go to the "Shop" worksheet
-3. Add/edit/remove items with columns: Item Name, Price, Description
+3. Add/edit/remove items with columns: Item Name, Price, Currency (cp/sp/ep/gp/pp), Description
 4. Changes are reflected immediately in the bot
 
 ## Architecture
 
 - **bot.py**: Main Discord bot with all commands
 - **storage.py**: Google Sheets integration for data persistence
+- **dnd_utils.py**: D&D 5e game mechanics (XP thresholds, currency conversion, level calculations)
 - **requirements.txt**: Python dependencies
 - **.env**: Configuration file (not committed to git)
 - **credentials.json**: Google service account credentials (not committed to git)
