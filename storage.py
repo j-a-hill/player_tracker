@@ -77,12 +77,6 @@ class PlayerStorage:
                     except (ValueError, TypeError):
                         xp = 0
                     
-                    # Handle legacy 'Gold' field for backwards compatibility
-                    try:
-                        gold = int(record.get('Gold', 0))
-                    except (ValueError, TypeError):
-                        gold = 0
-                    
                     # Get individual currency values
                     try:
                         copper = int(record.get('Copper', 0))
@@ -100,9 +94,9 @@ class PlayerStorage:
                         electrum = 0
                     
                     try:
-                        new_gold = int(record.get('Gold', gold))
+                        gold = int(record.get('Gold', 0))
                     except (ValueError, TypeError):
-                        new_gold = gold
+                        gold = 0
                     
                     try:
                         platinum = int(record.get('Platinum', 0))
@@ -116,7 +110,7 @@ class PlayerStorage:
                         'copper': copper,
                         'silver': silver,
                         'electrum': electrum,
-                        'gold': new_gold,
+                        'gold': gold,
                         'platinum': platinum,
                         'inventory': inventory,
                         'row': idx

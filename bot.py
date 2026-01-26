@@ -25,6 +25,23 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 SHEET_ID = os.getenv('GOOGLE_SHEET_ID')
 GM_ROLE_ID = os.getenv('GM_ROLE_ID')
 
+# Currency mapping constants
+CURRENCY_MAP = {
+    'cp': 'copper',
+    'sp': 'silver',
+    'ep': 'electrum',
+    'gp': 'gold',
+    'pp': 'platinum'
+}
+
+CURRENCY_NAMES = {
+    'cp': 'copper',
+    'sp': 'silver',
+    'ep': 'electrum',
+    'gp': 'gold',
+    'pp': 'platinum'
+}
+
 # Initialize bot with intents
 intents = discord.Intents.default()
 intents.message_content = True
@@ -321,32 +338,15 @@ async def add_currency(interaction: discord.Interaction, player: discord.Member,
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
     
-    # Map currency type to field name
-    currency_map = {
-        'cp': 'copper',
-        'sp': 'silver',
-        'ep': 'electrum',
-        'gp': 'gold',
-        'pp': 'platinum'
-    }
-    
-    field_name = currency_map[currency_type]
+    field_name = CURRENCY_MAP[currency_type]
     current_amount = player_data[field_name]
     new_amount = current_amount + amount
     
     # Update the specific currency
     storage.update_player(player_id, **{field_name: new_amount})
     
-    currency_names = {
-        'cp': 'copper',
-        'sp': 'silver',
-        'ep': 'electrum',
-        'gp': 'gold',
-        'pp': 'platinum'
-    }
-    
     await interaction.response.send_message(
-        f"✅ Added {amount} {currency_names[currency_type]} to {player.mention}. New total: {new_amount} {currency_type}"
+        f"✅ Added {amount} {CURRENCY_NAMES[currency_type]} to {player.mention}. New total: {new_amount} {currency_type}"
     )
 
 
@@ -376,32 +376,15 @@ async def remove_currency(interaction: discord.Interaction, player: discord.Memb
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
     
-    # Map currency type to field name
-    currency_map = {
-        'cp': 'copper',
-        'sp': 'silver',
-        'ep': 'electrum',
-        'gp': 'gold',
-        'pp': 'platinum'
-    }
-    
-    field_name = currency_map[currency_type]
+    field_name = CURRENCY_MAP[currency_type]
     current_amount = player_data[field_name]
     new_amount = max(0, current_amount - amount)
     
     # Update the specific currency
     storage.update_player(player_id, **{field_name: new_amount})
     
-    currency_names = {
-        'cp': 'copper',
-        'sp': 'silver',
-        'ep': 'electrum',
-        'gp': 'gold',
-        'pp': 'platinum'
-    }
-    
     await interaction.response.send_message(
-        f"✅ Removed {amount} {currency_names[currency_type]} from {player.mention}. New total: {new_amount} {currency_type}"
+        f"✅ Removed {amount} {CURRENCY_NAMES[currency_type]} from {player.mention}. New total: {new_amount} {currency_type}"
     )
 
 
@@ -519,17 +502,8 @@ async def buy(interaction: discord.Interaction, item: str):
     if not player:
         player = storage.create_player(player_id, interaction.user.display_name)
     
-    # Map currency type to field name
-    currency_map = {
-        'cp': 'copper',
-        'sp': 'silver',
-        'ep': 'electrum',
-        'gp': 'gold',
-        'pp': 'platinum'
-    }
-    
     currency_type = shop_item['currency']
-    field_name = currency_map[currency_type]
+    field_name = CURRENCY_MAP[currency_type]
     player_currency = player[field_name]
     
     # Check if player has enough currency
