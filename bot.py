@@ -408,8 +408,6 @@ if __name__ == '__main__':
         print(f"Warning: Discord token seems too short ({len(TOKEN)} characters)")
         print("Discord bot tokens are typically 59 or more characters long.")
         print("Please verify you have the correct token from https://discord.com/developers/applications")
-        print("\nCurrent token preview (first 10 chars): " + TOKEN[:10] + "...")
         exit(1)
     
-    print(f"Starting bot with token: {TOKEN[:10]}...{TOKEN[-5:]}")
     bot.run(TOKEN)
