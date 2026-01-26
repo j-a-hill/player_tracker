@@ -43,18 +43,18 @@ class PlayerStorage:
             self.players_sheet = self.spreadsheet.worksheet('Players')
         except gspread.exceptions.WorksheetNotFound:
             self.players_sheet = self.spreadsheet.add_worksheet('Players', 100, 10)
-            self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Gold', 'Inventory'])
+            self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory'])
         
         try:
             self.shop_sheet = self.spreadsheet.worksheet('Shop')
         except gspread.exceptions.WorksheetNotFound:
             self.shop_sheet = self.spreadsheet.add_worksheet('Shop', 100, 10)
-            self.shop_sheet.append_row(['Item Name', 'Price', 'Description'])
+            self.shop_sheet.append_row(['Item Name', 'Price', 'Currency', 'Description'])
             # Add some default items
-            self.shop_sheet.append_row(['Health Potion', '50', 'Restores 50 HP'])
-            self.shop_sheet.append_row(['Mana Potion', '40', 'Restores 30 MP'])
-            self.shop_sheet.append_row(['Sword', '100', 'A basic sword'])
-            self.shop_sheet.append_row(['Shield', '80', 'A basic shield'])
+            self.shop_sheet.append_row(['Health Potion', '50', 'gp', 'Restores 50 HP'])
+            self.shop_sheet.append_row(['Mana Potion', '40', 'gp', 'Restores 30 MP'])
+            self.shop_sheet.append_row(['Sword', '100', 'gp', 'A basic sword'])
+            self.shop_sheet.append_row(['Shield', '80', 'gp', 'A basic shield'])
     
     def get_player(self, player_id: str) -> Optional[Dict]:
         """Get player data by Discord ID."""
@@ -77,16 +77,47 @@ class PlayerStorage:
                     except (ValueError, TypeError):
                         xp = 0
                     
+                    # Handle legacy 'Gold' field for backwards compatibility
                     try:
                         gold = int(record.get('Gold', 0))
                     except (ValueError, TypeError):
                         gold = 0
                     
+                    # Get individual currency values
+                    try:
+                        copper = int(record.get('Copper', 0))
+                    except (ValueError, TypeError):
+                        copper = 0
+                    
+                    try:
+                        silver = int(record.get('Silver', 0))
+                    except (ValueError, TypeError):
+                        silver = 0
+                    
+                    try:
+                        electrum = int(record.get('Electrum', 0))
+                    except (ValueError, TypeError):
+                        electrum = 0
+                    
+                    try:
+                        new_gold = int(record.get('Gold', gold))
+                    except (ValueError, TypeError):
+                        new_gold = gold
+                    
+                    try:
+                        platinum = int(record.get('Platinum', 0))
+                    except (ValueError, TypeError):
+                        platinum = 0
+                    
                     return {
                         'player_id': str(record.get('Player ID')),
                         'name': record.get('Name', ''),
                         'xp': xp,
-                        'gold': gold,
+                        'copper': copper,
+                        'silver': silver,
+                        'electrum': electrum,
+                        'gold': new_gold,
+                        'platinum': platinum,
                         'inventory': inventory,
                         'row': idx
                     }
@@ -98,20 +129,44 @@ class PlayerStorage:
     def create_player(self, player_id: str, name: str) -> Dict:
         """Create a new player."""
         if not self.players_sheet:
-            return {'player_id': player_id, 'name': name, 'xp': 0, 'gold': 0, 'inventory': []}
+            return {
+                'player_id': player_id,
+                'name': name,
+                'xp': 0,
+                'copper': 0,
+                'silver': 0,
+                'electrum': 0,
+                'gold': 0,
+                'platinum': 0,
+                'inventory': []
+            }
             
         try:
-            self.players_sheet.append_row([str(player_id), name, 0, 0, '[]'])
+            self.players_sheet.append_row([str(player_id), name, 0, 0, 0, 0, 0, 0, '[]'])
             return {
                 'player_id': str(player_id),
                 'name': name,
                 'xp': 0,
+                'copper': 0,
+                'silver': 0,
+                'electrum': 0,
                 'gold': 0,
+                'platinum': 0,
                 'inventory': []
             }
         except Exception as e:
             print(f"Error creating player: {e}")
-            return {'player_id': player_id, 'name': name, 'xp': 0, 'gold': 0, 'inventory': []}
+            return {
+                'player_id': player_id,
+                'name': name,
+                'xp': 0,
+                'copper': 0,
+                'silver': 0,
+                'electrum': 0,
+                'gold': 0,
+                'platinum': 0,
+                'inventory': []
+            }
     
     def update_player(self, player_id: str, **kwargs):
         """Update player data."""
@@ -127,11 +182,19 @@ class PlayerStorage:
             
             if 'xp' in kwargs:
                 self.players_sheet.update_cell(row, 3, kwargs['xp'])
+            if 'copper' in kwargs:
+                self.players_sheet.update_cell(row, 4, kwargs['copper'])
+            if 'silver' in kwargs:
+                self.players_sheet.update_cell(row, 5, kwargs['silver'])
+            if 'electrum' in kwargs:
+                self.players_sheet.update_cell(row, 6, kwargs['electrum'])
             if 'gold' in kwargs:
-                self.players_sheet.update_cell(row, 4, kwargs['gold'])
+                self.players_sheet.update_cell(row, 7, kwargs['gold'])
+            if 'platinum' in kwargs:
+                self.players_sheet.update_cell(row, 8, kwargs['platinum'])
             if 'inventory' in kwargs:
                 inventory_json = json.dumps(kwargs['inventory'])
-                self.players_sheet.update_cell(row, 5, inventory_json)
+                self.players_sheet.update_cell(row, 9, inventory_json)
         except Exception as e:
             print(f"Error updating player: {e}")
     
@@ -149,9 +212,15 @@ class PlayerStorage:
                 except (ValueError, TypeError):
                     price = 0
                 
+                # Get currency type (default to 'gp' for backwards compatibility)
+                currency = record.get('Currency', 'gp').lower()
+                if currency not in ['cp', 'sp', 'ep', 'gp', 'pp']:
+                    currency = 'gp'
+                
                 items.append({
                     'name': record.get('Item Name', ''),
                     'price': price,
+                    'currency': currency,
                     'description': record.get('Description', '')
                 })
             return items

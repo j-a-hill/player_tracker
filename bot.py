@@ -8,6 +8,13 @@ from discord import app_commands
 import os
 from dotenv import load_dotenv
 from storage import PlayerStorage
+from dnd_utils import (
+    get_level_from_xp, 
+    get_xp_progress, 
+    format_currency,
+    create_progress_bar,
+    get_xp_for_level
+)
 from typing import Optional
 
 # Load environment variables
@@ -80,12 +87,32 @@ async def profile(interaction: discord.Interaction):
     if not player:
         player = storage.create_player(player_id, interaction.user.display_name)
     
+    # Calculate level and XP progress
+    level, current_level_xp, next_level_xp, progress = get_xp_progress(player['xp'])
+    progress_bar = create_progress_bar(progress)
+    
     embed = discord.Embed(
         title=f"📋 {player['name']}'s Profile",
         color=discord.Color.blue()
     )
-    embed.add_field(name="⭐ XP", value=str(player['xp']), inline=True)
-    embed.add_field(name="💰 Gold", value=str(player['gold']), inline=True)
+    
+    # XP and Level info
+    if level < 20:
+        xp_text = f"Level {level}\n{player['xp']} / {next_level_xp} XP\n{progress_bar}"
+    else:
+        xp_text = f"Level {level} (Max Level)\n{player['xp']} XP"
+    
+    embed.add_field(name="⭐ Experience", value=xp_text, inline=False)
+    
+    # Currency info
+    currency_text = format_currency(
+        cp=player['copper'],
+        sp=player['silver'],
+        ep=player['electrum'],
+        gp=player['gold'],
+        pp=player['platinum']
+    )
+    embed.add_field(name="💰 Currency", value=currency_text, inline=False)
     
     inventory_text = "\n".join(player['inventory']) if player['inventory'] else "Empty"
     embed.add_field(name="🎒 Inventory", value=inventory_text, inline=False)
@@ -122,7 +149,16 @@ async def inventory(interaction: discord.Interaction):
         inventory_text = "Your inventory is empty!"
     
     embed.description = inventory_text
-    embed.add_field(name="💰 Gold", value=str(player['gold']), inline=False)
+    
+    # Currency info
+    currency_text = format_currency(
+        cp=player['copper'],
+        sp=player['silver'],
+        ep=player['electrum'],
+        gp=player['gold'],
+        pp=player['platinum']
+    )
+    embed.add_field(name="💰 Currency", value=currency_text, inline=False)
     
     await interaction.response.send_message(embed=embed)
 
@@ -143,12 +179,41 @@ async def add_xp(interaction: discord.Interaction, player: discord.Member, amoun
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
     
-    new_xp = player_data['xp'] + amount
+    old_xp = player_data['xp']
+    new_xp = old_xp + amount
+    old_level = get_level_from_xp(old_xp)
+    new_level = get_level_from_xp(new_xp)
+    
     storage.update_player(player_id, xp=new_xp)
     
-    await interaction.response.send_message(
-        f"✅ Added {amount} XP to {player.mention}. New total: {new_xp} XP"
-    )
+    # Check for level up
+    if new_level > old_level:
+        # Level up occurred!
+        embed = discord.Embed(
+            title="🎉 LEVEL UP! 🎉",
+            description=f"{player.mention} has reached **Level {new_level}**!",
+            color=discord.Color.gold()
+        )
+        embed.add_field(name="Previous Level", value=str(old_level), inline=True)
+        embed.add_field(name="New Level", value=str(new_level), inline=True)
+        embed.add_field(name="Total XP", value=str(new_xp), inline=True)
+        
+        if new_level < 20:
+            next_level_xp = get_xp_for_level(new_level + 1)
+            embed.add_field(
+                name="Next Level",
+                value=f"{next_level_xp - new_xp} XP until level {new_level + 1}",
+                inline=False
+            )
+        else:
+            embed.add_field(name="Achievement", value="Maximum level reached!", inline=False)
+        
+        await interaction.response.send_message(embed=embed)
+    else:
+        # No level up, just show XP gain
+        await interaction.response.send_message(
+            f"✅ Added {amount} XP to {player.mention}. New total: {new_xp} XP (Level {new_level})"
+        )
 
 
 @bot.tree.command(name="remove_xp", description="[GM] Remove XP from a player")
@@ -166,12 +231,22 @@ async def remove_xp(interaction: discord.Interaction, player: discord.Member, am
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
     
-    new_xp = max(0, player_data['xp'] - amount)
+    old_xp = player_data['xp']
+    new_xp = max(0, old_xp - amount)
+    old_level = get_level_from_xp(old_xp)
+    new_level = get_level_from_xp(new_xp)
+    
     storage.update_player(player_id, xp=new_xp)
     
-    await interaction.response.send_message(
-        f"✅ Removed {amount} XP from {player.mention}. New total: {new_xp} XP"
-    )
+    # Check for level down
+    if new_level < old_level:
+        await interaction.response.send_message(
+            f"✅ Removed {amount} XP from {player.mention}. New total: {new_xp} XP (Level {new_level}, down from {old_level})"
+        )
+    else:
+        await interaction.response.send_message(
+            f"✅ Removed {amount} XP from {player.mention}. New total: {new_xp} XP (Level {new_level})"
+        )
 
 
 @bot.tree.command(name="add_gold", description="[GM] Add gold to a player")
@@ -217,6 +292,116 @@ async def remove_gold(interaction: discord.Interaction, player: discord.Member, 
     
     await interaction.response.send_message(
         f"✅ Removed {amount} gold from {player.mention}. New total: {new_gold} gold"
+    )
+
+
+@bot.tree.command(name="add_currency", description="[GM] Add currency to a player")
+@app_commands.describe(
+    player="The player to give currency to",
+    amount="Amount of currency to add",
+    currency_type="Type of currency (cp, sp, ep, gp, pp)"
+)
+@app_commands.choices(currency_type=[
+    app_commands.Choice(name="Copper (cp)", value="cp"),
+    app_commands.Choice(name="Silver (sp)", value="sp"),
+    app_commands.Choice(name="Electrum (ep)", value="ep"),
+    app_commands.Choice(name="Gold (gp)", value="gp"),
+    app_commands.Choice(name="Platinum (pp)", value="pp"),
+])
+@is_gm()
+async def add_currency(interaction: discord.Interaction, player: discord.Member, amount: int, currency_type: str):
+    """Add currency to a player."""
+    if not storage:
+        await interaction.response.send_message("Storage not configured!", ephemeral=True)
+        return
+    
+    player_id = str(player.id)
+    player_data = storage.get_player(player_id)
+    
+    if not player_data:
+        player_data = storage.create_player(player_id, player.display_name)
+    
+    # Map currency type to field name
+    currency_map = {
+        'cp': 'copper',
+        'sp': 'silver',
+        'ep': 'electrum',
+        'gp': 'gold',
+        'pp': 'platinum'
+    }
+    
+    field_name = currency_map[currency_type]
+    current_amount = player_data[field_name]
+    new_amount = current_amount + amount
+    
+    # Update the specific currency
+    storage.update_player(player_id, **{field_name: new_amount})
+    
+    currency_names = {
+        'cp': 'copper',
+        'sp': 'silver',
+        'ep': 'electrum',
+        'gp': 'gold',
+        'pp': 'platinum'
+    }
+    
+    await interaction.response.send_message(
+        f"✅ Added {amount} {currency_names[currency_type]} to {player.mention}. New total: {new_amount} {currency_type}"
+    )
+
+
+@bot.tree.command(name="remove_currency", description="[GM] Remove currency from a player")
+@app_commands.describe(
+    player="The player to remove currency from",
+    amount="Amount of currency to remove",
+    currency_type="Type of currency (cp, sp, ep, gp, pp)"
+)
+@app_commands.choices(currency_type=[
+    app_commands.Choice(name="Copper (cp)", value="cp"),
+    app_commands.Choice(name="Silver (sp)", value="sp"),
+    app_commands.Choice(name="Electrum (ep)", value="ep"),
+    app_commands.Choice(name="Gold (gp)", value="gp"),
+    app_commands.Choice(name="Platinum (pp)", value="pp"),
+])
+@is_gm()
+async def remove_currency(interaction: discord.Interaction, player: discord.Member, amount: int, currency_type: str):
+    """Remove currency from a player."""
+    if not storage:
+        await interaction.response.send_message("Storage not configured!", ephemeral=True)
+        return
+    
+    player_id = str(player.id)
+    player_data = storage.get_player(player_id)
+    
+    if not player_data:
+        player_data = storage.create_player(player_id, player.display_name)
+    
+    # Map currency type to field name
+    currency_map = {
+        'cp': 'copper',
+        'sp': 'silver',
+        'ep': 'electrum',
+        'gp': 'gold',
+        'pp': 'platinum'
+    }
+    
+    field_name = currency_map[currency_type]
+    current_amount = player_data[field_name]
+    new_amount = max(0, current_amount - amount)
+    
+    # Update the specific currency
+    storage.update_player(player_id, **{field_name: new_amount})
+    
+    currency_names = {
+        'cp': 'copper',
+        'sp': 'silver',
+        'ep': 'electrum',
+        'gp': 'gold',
+        'pp': 'platinum'
+    }
+    
+    await interaction.response.send_message(
+        f"✅ Removed {amount} {currency_names[currency_type]} from {player.mention}. New total: {new_amount} {currency_type}"
     )
 
 
@@ -293,7 +478,7 @@ async def shop(interaction: discord.Interaction):
     if items:
         for item in items:
             embed.add_field(
-                name=f"{item['name']} - {item['price']} gold",
+                name=f"{item['name']} - {item['price']} {item['currency']}",
                 value=item['description'],
                 inline=False
             )
@@ -334,23 +519,36 @@ async def buy(interaction: discord.Interaction, item: str):
     if not player:
         player = storage.create_player(player_id, interaction.user.display_name)
     
-    # Check if player has enough gold
-    if player['gold'] < shop_item['price']:
+    # Map currency type to field name
+    currency_map = {
+        'cp': 'copper',
+        'sp': 'silver',
+        'ep': 'electrum',
+        'gp': 'gold',
+        'pp': 'platinum'
+    }
+    
+    currency_type = shop_item['currency']
+    field_name = currency_map[currency_type]
+    player_currency = player[field_name]
+    
+    # Check if player has enough currency
+    if player_currency < shop_item['price']:
         await interaction.response.send_message(
-            f"❌ You don't have enough gold! You need {shop_item['price']} gold but only have {player['gold']} gold.",
+            f"❌ You don't have enough {currency_type}! You need {shop_item['price']} {currency_type} but only have {player_currency} {currency_type}.",
             ephemeral=True
         )
         return
     
     # Purchase item
-    new_gold = player['gold'] - shop_item['price']
+    new_currency = player_currency - shop_item['price']
     inventory = player['inventory']
     inventory.append(shop_item['name'])
     
-    storage.update_player(player_id, gold=new_gold, inventory=inventory)
+    storage.update_player(player_id, inventory=inventory, **{field_name: new_currency})
     
     await interaction.response.send_message(
-        f"✅ Purchased **{shop_item['name']}** for {shop_item['price']} gold! You now have {new_gold} gold remaining."
+        f"✅ Purchased **{shop_item['name']}** for {shop_item['price']} {currency_type}! You now have {new_currency} {currency_type} remaining."
     )
 
 
@@ -359,15 +557,15 @@ async def help_command(interaction: discord.Interaction):
     """Show help information."""
     embed = discord.Embed(
         title="🎮 Player Tracker Bot - Help",
-        description="Track your TTRPG character's progress!",
+        description="Track your D&D 5e character's progress!",
         color=discord.Color.purple()
     )
     
     embed.add_field(
         name="📊 Player Commands",
         value=(
-            "`/profile` - View your character profile\n"
-            "`/inventory` - View your inventory\n"
+            "`/profile` - View your character profile with level and XP\n"
+            "`/inventory` - View your inventory and currency\n"
             "`/shop` - Browse the merchant's shop\n"
             "`/buy <item>` - Purchase an item from the shop"
         ),
@@ -375,15 +573,37 @@ async def help_command(interaction: discord.Interaction):
     )
     
     embed.add_field(
-        name="🎲 GM Commands",
+        name="🎲 GM Commands - XP",
         value=(
-            "`/add_xp <player> <amount>` - Give XP to a player\n"
-            "`/remove_xp <player> <amount>` - Remove XP from a player\n"
-            "`/add_gold <player> <amount>` - Give gold to a player\n"
-            "`/remove_gold <player> <amount>` - Remove gold from a player\n"
+            "`/add_xp <player> <amount>` - Give XP (shows level-up!)\n"
+            "`/remove_xp <player> <amount>` - Remove XP from a player"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="💰 GM Commands - Currency",
+        value=(
+            "`/add_currency <player> <amount> <type>` - Add any currency\n"
+            "`/remove_currency <player> <amount> <type>` - Remove currency\n"
+            "`/add_gold <player> <amount>` - Quick add gold\n"
+            "`/remove_gold <player> <amount>` - Quick remove gold"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🎒 GM Commands - Items",
+        value=(
             "`/give_item <player> <item>` - Give an item to a player\n"
             "`/remove_item <player> <item>` - Remove an item from a player"
         ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="💵 Currency Types",
+        value="cp (copper), sp (silver), ep (electrum), gp (gold), pp (platinum)",
         inline=False
     )
     
