@@ -27,6 +27,15 @@ def test_imports():
         print(f"✗ storage.py has syntax error: {e}")
         return False
     
+    # Test dnd_utils.py syntax
+    try:
+        with open('dnd_utils.py', 'r') as f:
+            compile(f.read(), 'dnd_utils.py', 'exec')
+        print("✓ dnd_utils.py syntax is valid")
+    except SyntaxError as e:
+        print(f"✗ dnd_utils.py has syntax error: {e}")
+        return False
+    
     return True
 
 def test_file_structure():
@@ -36,6 +45,7 @@ def test_file_structure():
     required_files = [
         'bot.py',
         'storage.py',
+        'dnd_utils.py',
         'requirements.txt',
         '.env.example',
         '.gitignore',
@@ -110,6 +120,72 @@ def test_readme():
     
     return all_present
 
+
+def test_dnd_utils():
+    """Test D&D 5e utility functions."""
+    print("\nTesting D&D 5e utilities...")
+    
+    try:
+        from dnd_utils import (
+            get_level_from_xp,
+            get_xp_for_level,
+            get_xp_progress,
+            format_currency,
+            create_progress_bar
+        )
+        
+        # Test level calculation
+        level = get_level_from_xp(0)
+        if level == 1:
+            print("✓ Level 1 at 0 XP")
+        else:
+            print(f"✗ Expected level 1, got {level}")
+            return False
+        
+        level = get_level_from_xp(300)
+        if level == 2:
+            print("✓ Level 2 at 300 XP")
+        else:
+            print(f"✗ Expected level 2, got {level}")
+            return False
+        
+        level = get_level_from_xp(355000)
+        if level == 20:
+            print("✓ Level 20 at 355000 XP")
+        else:
+            print(f"✗ Expected level 20, got {level}")
+            return False
+        
+        # Test XP threshold
+        xp = get_xp_for_level(5)
+        if xp == 6500:
+            print("✓ Level 5 requires 6500 XP")
+        else:
+            print(f"✗ Expected 6500 XP for level 5, got {xp}")
+            return False
+        
+        # Test currency formatting
+        currency_str = format_currency(gp=10, sp=5)
+        if "10 gp" in currency_str and "5 sp" in currency_str:
+            print("✓ Currency formatting works")
+        else:
+            print(f"✗ Currency formatting failed: {currency_str}")
+            return False
+        
+        # Test progress bar
+        bar = create_progress_bar(50.0)
+        if "50.0%" in bar:
+            print("✓ Progress bar creation works")
+        else:
+            print(f"✗ Progress bar failed: {bar}")
+            return False
+        
+        print("✓ All D&D utility tests passed")
+        return True
+    except Exception as e:
+        print(f"✗ D&D utils test failed: {e}")
+        return False
+
 if __name__ == '__main__':
     print("=" * 60)
     print("Player Tracker Bot - Component Tests")
@@ -122,6 +198,7 @@ if __name__ == '__main__':
     results.append((".env.example", test_env_example()))
     results.append(("requirements.txt", test_requirements()))
     results.append(("README.md", test_readme()))
+    results.append(("D&D 5e utilities", test_dnd_utils()))
     
     print("\n" + "=" * 60)
     print("Test Results")
