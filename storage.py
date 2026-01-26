@@ -43,18 +43,18 @@ class PlayerStorage:
             self.players_sheet = self.spreadsheet.worksheet('Players')
         except gspread.exceptions.WorksheetNotFound:
             self.players_sheet = self.spreadsheet.add_worksheet('Players', 100, 10)
-            self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Gold', 'Inventory'])
+            self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory'])
         
         try:
             self.shop_sheet = self.spreadsheet.worksheet('Shop')
         except gspread.exceptions.WorksheetNotFound:
             self.shop_sheet = self.spreadsheet.add_worksheet('Shop', 100, 10)
-            self.shop_sheet.append_row(['Item Name', 'Price', 'Description', 'Stock'])
+            self.shop_sheet.append_row(['Item Name', 'Price', 'Currency', 'Description', 'Stock'])
             # Add some default items
-            self.shop_sheet.append_row(['Health Potion', '50', 'Restores 50 HP', '10'])
-            self.shop_sheet.append_row(['Mana Potion', '40', 'Restores 30 MP', '10'])
-            self.shop_sheet.append_row(['Sword', '100', 'A basic sword', '5'])
-            self.shop_sheet.append_row(['Shield', '80', 'A basic shield', '5'])
+            self.shop_sheet.append_row(['Health Potion', '50', 'gp', 'Restores 50 HP', '10'])
+            self.shop_sheet.append_row(['Mana Potion', '40', 'gp', 'Restores 30 MP', '10'])
+            self.shop_sheet.append_row(['Sword', '100', 'gp', 'A basic sword', '5'])
+            self.shop_sheet.append_row(['Shield', '80', 'gp', 'A basic shield', '5'])
     
     def get_player(self, player_id: str) -> Optional[Dict]:
         """Get player data by Discord ID."""
@@ -77,16 +77,41 @@ class PlayerStorage:
                     except (ValueError, TypeError):
                         xp = 0
                     
+                    # Get individual currency values
+                    try:
+                        copper = int(record.get('Copper', 0))
+                    except (ValueError, TypeError):
+                        copper = 0
+                    
+                    try:
+                        silver = int(record.get('Silver', 0))
+                    except (ValueError, TypeError):
+                        silver = 0
+                    
+                    try:
+                        electrum = int(record.get('Electrum', 0))
+                    except (ValueError, TypeError):
+                        electrum = 0
+                    
                     try:
                         gold = int(record.get('Gold', 0))
                     except (ValueError, TypeError):
                         gold = 0
                     
+                    try:
+                        platinum = int(record.get('Platinum', 0))
+                    except (ValueError, TypeError):
+                        platinum = 0
+                    
                     return {
                         'player_id': str(record.get('Player ID')),
                         'name': record.get('Name', ''),
                         'xp': xp,
+                        'copper': copper,
+                        'silver': silver,
+                        'electrum': electrum,
                         'gold': gold,
+                        'platinum': platinum,
                         'inventory': inventory,
                         'row': idx
                     }
@@ -98,20 +123,44 @@ class PlayerStorage:
     def create_player(self, player_id: str, name: str) -> Dict:
         """Create a new player."""
         if not self.players_sheet:
-            return {'player_id': player_id, 'name': name, 'xp': 0, 'gold': 0, 'inventory': []}
+            return {
+                'player_id': player_id,
+                'name': name,
+                'xp': 0,
+                'copper': 0,
+                'silver': 0,
+                'electrum': 0,
+                'gold': 0,
+                'platinum': 0,
+                'inventory': []
+            }
             
         try:
-            self.players_sheet.append_row([str(player_id), name, 0, 0, '[]'])
+            self.players_sheet.append_row([str(player_id), name, 0, 0, 0, 0, 0, 0, '[]'])
             return {
                 'player_id': str(player_id),
                 'name': name,
                 'xp': 0,
+                'copper': 0,
+                'silver': 0,
+                'electrum': 0,
                 'gold': 0,
+                'platinum': 0,
                 'inventory': []
             }
         except Exception as e:
             print(f"Error creating player: {e}")
-            return {'player_id': player_id, 'name': name, 'xp': 0, 'gold': 0, 'inventory': []}
+            return {
+                'player_id': player_id,
+                'name': name,
+                'xp': 0,
+                'copper': 0,
+                'silver': 0,
+                'electrum': 0,
+                'gold': 0,
+                'platinum': 0,
+                'inventory': []
+            }
     
     def update_player(self, player_id: str, **kwargs):
         """Update player data."""
@@ -127,11 +176,19 @@ class PlayerStorage:
             
             if 'xp' in kwargs:
                 self.players_sheet.update_cell(row, 3, kwargs['xp'])
+            if 'copper' in kwargs:
+                self.players_sheet.update_cell(row, 4, kwargs['copper'])
+            if 'silver' in kwargs:
+                self.players_sheet.update_cell(row, 5, kwargs['silver'])
+            if 'electrum' in kwargs:
+                self.players_sheet.update_cell(row, 6, kwargs['electrum'])
             if 'gold' in kwargs:
-                self.players_sheet.update_cell(row, 4, kwargs['gold'])
+                self.players_sheet.update_cell(row, 7, kwargs['gold'])
+            if 'platinum' in kwargs:
+                self.players_sheet.update_cell(row, 8, kwargs['platinum'])
             if 'inventory' in kwargs:
                 inventory_json = json.dumps(kwargs['inventory'])
-                self.players_sheet.update_cell(row, 5, inventory_json)
+                self.players_sheet.update_cell(row, 9, inventory_json)
         except Exception as e:
             print(f"Error updating player: {e}")
     
@@ -149,6 +206,11 @@ class PlayerStorage:
                 except (ValueError, TypeError):
                     price = 0
                 
+                # Get currency type (default to 'gp' for backwards compatibility)
+                currency = record.get('Currency', 'gp').lower()
+                if currency not in ['cp', 'sp', 'ep', 'gp', 'pp']:
+                    currency = 'gp'
+                
                 try:
                     stock = int(record.get('Stock', -1))  # -1 means unlimited
                 except (ValueError, TypeError):
@@ -157,6 +219,7 @@ class PlayerStorage:
                 items.append({
                     'name': record.get('Item Name', ''),
                     'price': price,
+                    'currency': currency,
                     'description': record.get('Description', ''),
                     'stock': stock,
                     'row': idx
@@ -175,20 +238,20 @@ class PlayerStorage:
             items = self.get_shop_items()
             for item in items:
                 if item['name'].lower() == item_name.lower():
-                    self.shop_sheet.update_cell(item['row'], 4, new_stock)
+                    self.shop_sheet.update_cell(item['row'], 5, new_stock)
                     return True
             return False
         except Exception as e:
             print(f"Error updating stock: {e}")
             return False
     
-    def add_shop_item(self, name: str, price: int, description: str, stock: int = -1):
+    def add_shop_item(self, name: str, price: int, currency: str, description: str, stock: int = -1):
         """Add a new item to the shop."""
         if not self.shop_sheet:
             return False
             
         try:
-            self.shop_sheet.append_row([name, price, description, stock])
+            self.shop_sheet.append_row([name, price, currency, description, stock])
             return True
         except Exception as e:
             print(f"Error adding shop item: {e}")

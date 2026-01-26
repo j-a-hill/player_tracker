@@ -26,17 +26,19 @@ def test_storage_methods():
 
 
 def test_shop_item_structure():
-    """Test that shop items have the stock field."""
+    """Test that shop items have the stock field and currency field."""
     print("\nTesting shop item structure...")
     
     with open('storage.py', 'r') as f:
         code = f.read()
     
-    # Check that Shop worksheet has Stock column
+    # Check that Shop worksheet has Stock and Currency columns
     assert "'Stock'" in code or '"Stock"' in code, "Stock column missing from Shop worksheet"
+    assert "'Currency'" in code or '"Currency"' in code, "Currency column missing from Shop worksheet"
     
-    # Check that get_shop_items includes stock in return
+    # Check that get_shop_items includes stock and currency in return
     assert "record.get('Stock'" in code, "get_shop_items doesn't retrieve stock"
+    assert "record.get('Currency'" in code, "get_shop_items doesn't retrieve currency"
     
     print("✓ Shop item structure is correct")
     return True
@@ -58,8 +60,10 @@ def test_merchant_bot_imports():
     assert '@bot.tree.command(name="restock"' in code, "restock command not found"
     assert '@bot.tree.command(name="clear_shop"' in code, "clear_shop command not found"
     assert 'quantity: int = 1' in code, "buy command doesn't have quantity parameter"
+    assert 'currency' in code.lower(), "merchant_bot doesn't support currency types"
+    assert 'from dnd_utils import' in code, "merchant_bot doesn't import dnd_utils"
     
-    print("✓ merchant_bot has all required commands")
+    print("✓ merchant_bot has all required commands and multi-currency support")
     return True
 
 
@@ -78,7 +82,32 @@ def test_bot_commands_removed():
     assert '@bot.tree.command(name="profile"' in code, "profile command missing"
     assert '@bot.tree.command(name="inventory"' in code, "inventory command missing"
     
-    print("✓ bot.py correctly cleaned up")
+    # Verify multi-currency support
+    assert 'from dnd_utils import' in code, "bot.py doesn't import dnd_utils"
+    assert 'add_currency' in code, "add_currency command missing"
+    assert 'remove_currency' in code, "remove_currency command missing"
+    
+    print("✓ bot.py correctly cleaned up and has multi-currency support")
+    return True
+
+
+def test_dnd_utils_exists():
+    """Test that dnd_utils.py exists and has required functions."""
+    print("\nTesting dnd_utils.py...")
+    
+    with open('dnd_utils.py', 'r') as f:
+        code = f.read()
+        compile(code, 'dnd_utils.py', 'exec')
+    
+    # Check for required functions
+    assert 'def get_level_from_xp' in code, "get_level_from_xp missing"
+    assert 'def get_xp_progress' in code, "get_xp_progress missing"
+    assert 'def format_currency' in code, "format_currency missing"
+    assert 'def create_progress_bar' in code, "create_progress_bar missing"
+    assert 'XP_THRESHOLDS' in code, "XP_THRESHOLDS missing"
+    assert 'CURRENCY_VALUES' in code, "CURRENCY_VALUES missing"
+    
+    print("✓ dnd_utils.py has all required functions")
     return True
 
 
@@ -90,6 +119,7 @@ if __name__ == '__main__':
     results = []
     
     try:
+        results.append(("DnD utils", test_dnd_utils_exists()))
         results.append(("Storage methods", test_storage_methods()))
         results.append(("Shop item structure", test_shop_item_structure()))
         results.append(("Merchant bot imports", test_merchant_bot_imports()))

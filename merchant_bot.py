@@ -8,6 +8,7 @@ from discord import app_commands
 import os
 from dotenv import load_dotenv
 from storage import PlayerStorage
+from dnd_utils import format_currency
 from typing import Optional
 
 # Load environment variables
@@ -17,6 +18,23 @@ load_dotenv()
 TOKEN = os.getenv('MERCHANT_BOT_TOKEN')
 SHEET_ID = os.getenv('GOOGLE_SHEET_ID')
 GM_ROLE_ID = os.getenv('GM_ROLE_ID')
+
+# Currency mapping constants
+CURRENCY_MAP = {
+    'cp': 'copper',
+    'sp': 'silver',
+    'ep': 'electrum',
+    'gp': 'gold',
+    'pp': 'platinum'
+}
+
+CURRENCY_NAMES = {
+    'cp': 'copper',
+    'sp': 'silver',
+    'ep': 'electrum',
+    'gp': 'gold',
+    'pp': 'platinum'
+}
 
 # Initialize bot with intents
 intents = discord.Intents.default()
@@ -88,8 +106,11 @@ async def shop(interaction: discord.Interaction):
             if item['stock'] == 0:
                 stock_text = "(OUT OF STOCK)"
             
+            # Get currency display name
+            currency = item.get('currency', 'gp')
+            
             embed.add_field(
-                name=f"{item['name']} - {item['price']} gold {stock_text}",
+                name=f"{item['name']} - {item['price']} {currency} {stock_text}",
                 value=item['description'],
                 inline=False
             )
@@ -150,21 +171,26 @@ async def buy(interaction: discord.Interaction, item: str, quantity: int = 1):
     # Calculate total cost
     total_cost = shop_item['price'] * quantity
     
-    # Check if player has enough gold
-    if player['gold'] < total_cost:
+    # Get currency type
+    currency_type = shop_item.get('currency', 'gp')
+    field_name = CURRENCY_MAP[currency_type]
+    player_currency = player[field_name]
+    
+    # Check if player has enough currency
+    if player_currency < total_cost:
         await interaction.response.send_message(
-            f"❌ You don't have enough gold! You need {total_cost} gold but only have {player['gold']} gold.",
+            f"❌ You don't have enough {currency_type}! You need {total_cost} {currency_type} but only have {player_currency} {currency_type}.",
             ephemeral=True
         )
         return
     
     # Purchase items
-    new_gold = player['gold'] - total_cost
+    new_currency = player_currency - total_cost
     inventory = player['inventory']
     for _ in range(quantity):
         inventory.append(shop_item['name'])
     
-    storage.update_player(player_id, gold=new_gold, inventory=inventory)
+    storage.update_player(player_id, inventory=inventory, **{field_name: new_currency})
     
     # Update stock
     if shop_item['stock'] >= 0:
@@ -173,7 +199,7 @@ async def buy(interaction: discord.Interaction, item: str, quantity: int = 1):
     
     quantity_text = f"{quantity}x " if quantity > 1 else ""
     await interaction.response.send_message(
-        f"✅ Purchased {quantity_text}**{shop_item['name']}** for {total_cost} gold! You now have {new_gold} gold remaining."
+        f"✅ Purchased {quantity_text}**{shop_item['name']}** for {total_cost} {currency_type}! You now have {new_currency} {currency_type} remaining."
     )
 
 
@@ -181,15 +207,24 @@ async def buy(interaction: discord.Interaction, item: str, quantity: int = 1):
 @bot.tree.command(name="add_item", description="[GM] Add an item to the shop")
 @app_commands.describe(
     name="Name of the item",
-    price="Price in gold",
+    price="Price in currency",
+    currency="Type of currency (cp, sp, ep, gp, pp)",
     description="Item description",
     stock="Number available (-1 for unlimited)"
 )
+@app_commands.choices(currency=[
+    app_commands.Choice(name="Copper (cp)", value="cp"),
+    app_commands.Choice(name="Silver (sp)", value="sp"),
+    app_commands.Choice(name="Electrum (ep)", value="ep"),
+    app_commands.Choice(name="Gold (gp)", value="gp"),
+    app_commands.Choice(name="Platinum (pp)", value="pp"),
+])
 @is_gm()
 async def add_item(
     interaction: discord.Interaction,
     name: str,
     price: int,
+    currency: str,
     description: str,
     stock: int = -1
 ):
@@ -202,12 +237,12 @@ async def add_item(
         await interaction.response.send_message("Price cannot be negative!", ephemeral=True)
         return
     
-    success = storage.add_shop_item(name, price, description, stock)
+    success = storage.add_shop_item(name, price, currency, description, stock)
     
     if success:
         stock_text = f" ({stock} in stock)" if stock >= 0 else " (unlimited stock)"
         await interaction.response.send_message(
-            f"✅ Added **{name}** to the shop for {price} gold{stock_text}!"
+            f"✅ Added **{name}** to the shop for {price} {currency}{stock_text}!"
         )
     else:
         await interaction.response.send_message(

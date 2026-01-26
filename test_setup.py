@@ -46,6 +46,7 @@ def test_file_structure():
         'bot.py',
         'merchant_bot.py',
         'storage.py',
+        'dnd_utils.py',
         'requirements.txt',
         '.env.example',
         '.gitignore',
