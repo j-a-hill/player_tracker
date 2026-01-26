@@ -18,6 +18,15 @@ def test_imports():
         print(f"✗ bot.py has syntax error: {e}")
         return False
     
+    # Test merchant_bot.py syntax
+    try:
+        with open('merchant_bot.py', 'r') as f:
+            compile(f.read(), 'merchant_bot.py', 'exec')
+        print("✓ merchant_bot.py syntax is valid")
+    except SyntaxError as e:
+        print(f"✗ merchant_bot.py has syntax error: {e}")
+        return False
+    
     # Test storage.py syntax
     try:
         with open('storage.py', 'r') as f:
@@ -44,6 +53,7 @@ def test_file_structure():
     
     required_files = [
         'bot.py',
+        'merchant_bot.py',
         'storage.py',
         'dnd_utils.py',
         'requirements.txt',
@@ -67,7 +77,7 @@ def test_env_example():
     """Test that .env.example has required variables."""
     print("\nTesting .env.example...")
     
-    required_vars = ['DISCORD_TOKEN', 'GOOGLE_SHEET_ID', 'GM_ROLE_ID']
+    required_vars = ['DISCORD_TOKEN', 'MERCHANT_BOT_TOKEN', 'GOOGLE_SHEET_ID', 'GM_ROLE_ID']
     
     with open('.env.example', 'r') as f:
         content = f.read()

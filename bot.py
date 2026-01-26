@@ -442,90 +442,6 @@ async def remove_item(interaction: discord.Interaction, player: discord.Member, 
         )
 
 
-# Merchant Commands
-@bot.tree.command(name="shop", description="View available items in the shop")
-async def shop(interaction: discord.Interaction):
-    """View shop items."""
-    if not storage:
-        await interaction.response.send_message("Storage not configured!", ephemeral=True)
-        return
-    
-    items = storage.get_shop_items()
-    
-    embed = discord.Embed(
-        title="🏪 Merchant Shop",
-        description="Welcome to the shop! Use `/buy` to purchase items.",
-        color=discord.Color.gold()
-    )
-    
-    if items:
-        for item in items:
-            embed.add_field(
-                name=f"{item['name']} - {item['price']} {item['currency']}",
-                value=item['description'],
-                inline=False
-            )
-    else:
-        embed.description = "The shop is currently empty!"
-    
-    await interaction.response.send_message(embed=embed)
-
-
-@bot.tree.command(name="buy", description="Buy an item from the shop")
-@app_commands.describe(item="Name of the item to buy")
-async def buy(interaction: discord.Interaction, item: str):
-    """Buy an item from the shop."""
-    if not storage:
-        await interaction.response.send_message("Storage not configured!", ephemeral=True)
-        return
-    
-    # Get shop items
-    shop_items = storage.get_shop_items()
-    shop_item = None
-    
-    for si in shop_items:
-        if si['name'].lower() == item.lower():
-            shop_item = si
-            break
-    
-    if not shop_item:
-        await interaction.response.send_message(
-            f"❌ **{item}** is not available in the shop!",
-            ephemeral=True
-        )
-        return
-    
-    # Get player data
-    player_id = str(interaction.user.id)
-    player = storage.get_player(player_id)
-    
-    if not player:
-        player = storage.create_player(player_id, interaction.user.display_name)
-    
-    currency_type = shop_item['currency']
-    field_name = CURRENCY_MAP[currency_type]
-    player_currency = player[field_name]
-    
-    # Check if player has enough currency
-    if player_currency < shop_item['price']:
-        await interaction.response.send_message(
-            f"❌ You don't have enough {currency_type}! You need {shop_item['price']} {currency_type} but only have {player_currency} {currency_type}.",
-            ephemeral=True
-        )
-        return
-    
-    # Purchase item
-    new_currency = player_currency - shop_item['price']
-    inventory = player['inventory']
-    inventory.append(shop_item['name'])
-    
-    storage.update_player(player_id, inventory=inventory, **{field_name: new_currency})
-    
-    await interaction.response.send_message(
-        f"✅ Purchased **{shop_item['name']}** for {shop_item['price']} {currency_type}! You now have {new_currency} {currency_type} remaining."
-    )
-
-
 @bot.tree.command(name="help", description="Show all available commands")
 async def help_command(interaction: discord.Interaction):
     """Show help information."""
@@ -539,9 +455,7 @@ async def help_command(interaction: discord.Interaction):
         name="📊 Player Commands",
         value=(
             "`/profile` - View your character profile with level and XP\n"
-            "`/inventory` - View your inventory and currency\n"
-            "`/shop` - Browse the merchant's shop\n"
-            "`/buy <item>` - Purchase an item from the shop"
+            "`/inventory` - View your inventory and currency"
         ),
         inline=False
     )
@@ -578,6 +492,12 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(
         name="💵 Currency Types",
         value="cp (copper), sp (silver), ep (electrum), gp (gold), pp (platinum)",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🏪 Shop Commands",
+        value="Shop commands are available in the Merchant Bot. Use `/help` in the Merchant Bot for details.",
         inline=False
     )
     
