@@ -67,10 +67,34 @@ if [ ! -f ".env" ]; then
     if [ -f ".env.example" ]; then
         echo "Creating .env from .env.example..."
         cp .env.example .env
-        echo -e "${YELLOW}Please edit .env and add your credentials${NC}"
+        echo -e "${YELLOW}❗ IMPORTANT: You must edit .env and add your credentials before the bot will work!${NC}"
+        echo ""
+        read -p "Do you want to edit .env now? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            ${EDITOR:-nano} .env
+        fi
     else
         echo -e "${RED}Error: .env.example not found${NC}"
         exit 1
+    fi
+fi
+
+# Verify .env has been configured
+if [ -f ".env" ]; then
+    if grep -q "your_discord_bot_token_here" .env || grep -q "your_google_sheet_id_here" .env; then
+        echo ""
+        echo -e "${YELLOW}⚠ Warning: .env file contains placeholder values${NC}"
+        echo "Make sure to replace them with your actual credentials:"
+        echo "  - DISCORD_TOKEN"
+        echo "  - GOOGLE_SHEET_ID"
+        echo ""
+        read -p "Continue anyway? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Deployment cancelled. Please configure .env and run again."
+            exit 1
+        fi
     fi
 fi
 
@@ -87,8 +111,7 @@ echo "Configuring systemd service..."
 CURRENT_USER=$(whoami)
 CURRENT_DIR="$SCRIPT_DIR"
 
-sed "s|YOUR_USERNAME|$CURRENT_USER|g" player_tracker.service > player_tracker.service.tmp
-sed -i "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" player_tracker.service.tmp
+sed -e "s|YOUR_USERNAME|$CURRENT_USER|g" -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" player_tracker.service > player_tracker.service.tmp
 
 # Install systemd service
 echo ""

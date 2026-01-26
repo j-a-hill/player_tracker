@@ -5,7 +5,7 @@
 if [ "$1" = "-f" ] || [ "$1" = "--follow" ]; then
     echo "Following logs (Ctrl+C to exit)..."
     sudo journalctl -u player_tracker -f
-elif [ "$1" = "-n" ] && [ -n "$2" ]; then
+elif [ "$1" = "-n" ] && [ -n "$2" ] && [[ "$2" =~ ^[0-9]+$ ]]; then
     echo "Showing last $2 log lines..."
     sudo journalctl -u player_tracker -n "$2" --no-pager
 else
