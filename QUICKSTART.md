@@ -16,8 +16,11 @@ This guide will help you get the Player Tracker bot up and running quickly.
 pip install -r requirements.txt
 ```
 
-### 2. Create a Discord Bot
+### 2. Create Discord Bots
 
+You'll need to create **two** Discord bots - one for player tracking and one for the merchant system.
+
+**Main Bot (Player Tracker):**
 1. Go to https://discord.com/developers/applications
 2. Click "New Application"
 3. Give it a name (e.g., "Player Tracker")
@@ -27,11 +30,26 @@ pip install -r requirements.txt
    - MESSAGE CONTENT INTENT
    - SERVER MEMBERS INTENT
 7. Click "Reset Token" and copy your bot token
-8. Save this token - you'll need it for the `.env` file
+8. Save this token - you'll need it as `DISCORD_TOKEN` in the `.env` file
 
-### 3. Invite Bot to Your Server
+**Merchant Bot:**
+1. Go back to https://discord.com/developers/applications
+2. Click "New Application"
+3. Give it a name (e.g., "Merchant Bot")
+4. Go to the "Bot" section
+5. Click "Add Bot"
+6. Under "Privileged Gateway Intents", enable:
+   - MESSAGE CONTENT INTENT
+   - SERVER MEMBERS INTENT
+7. Click "Reset Token" and copy your bot token
+8. Save this token - you'll need it as `MERCHANT_BOT_TOKEN` in the `.env` file
 
-1. In the Discord Developer Portal, go to "OAuth2" → "URL Generator"
+### 3. Invite Bots to Your Server
+
+You need to invite **both** bots to your server.
+
+**For each bot:**
+1. In the Discord Developer Portal, go to that bot's "OAuth2" → "URL Generator"
 2. Select these scopes:
    - `bot`
    - `applications.commands`
@@ -40,6 +58,7 @@ pip install -r requirements.txt
    - Use Slash Commands
 4. Copy the generated URL and open it in your browser
 5. Select your server and authorize the bot
+6. Repeat for the other bot
 
 ### 4. Set Up Google Sheets
 
@@ -86,7 +105,8 @@ pip install -r requirements.txt
 
 2. Edit `.env` with your favorite text editor:
    ```env
-   DISCORD_TOKEN=paste_your_discord_bot_token_here
+   DISCORD_TOKEN=paste_your_player_tracker_bot_token_here
+   MERCHANT_BOT_TOKEN=paste_your_merchant_bot_token_here
    GOOGLE_SHEET_ID=paste_your_sheet_id_here
    GM_ROLE_ID=leave_blank_or_add_role_id
    ```
@@ -96,13 +116,19 @@ pip install -r requirements.txt
    - Right-click on your GM role and copy the Role ID
    - If you don't see this option, enable Developer Mode in Discord settings
 
-### 7. Run the Bot
+### 7. Run the Bots
 
+**Main Player Tracker Bot:**
 ```bash
 python bot.py
 ```
 
-You should see:
+**Merchant Bot (in a separate terminal):**
+```bash
+python merchant_bot.py
+```
+
+You should see for each bot:
 ```
 {BotName} has connected to Discord!
 Connected to Google Sheets: {sheet_id}
@@ -113,13 +139,26 @@ Synced X command(s)
 
 In your Discord server, try these commands:
 
+**Player Tracker Bot:**
 1. `/help` - See all available commands
 2. `/profile` - Create your player profile
-3. `/shop` - View the merchant shop
+3. `/inventory` - View your inventory
+
+**Merchant Bot:**
+4. `/shop` - View the merchant shop
+5. `/buy Health Potion` - Buy an item
+6. `/buy Health Potion quantity:3` - Buy multiple items
 
 If you have the GM role or admin permissions:
-4. `/add_gold @player 100` - Give yourself or another player gold
-5. `/give_item @player "Health Potion"` - Give yourself or another player an item
+
+**Player Tracker Bot:**
+7. `/add_gold @player 100` - Give yourself or another player gold
+8. `/give_item @player "Health Potion"` - Give an item
+
+**Merchant Bot:**
+9. `/add_item name:"Magic Sword" price:200 description:"A powerful blade" stock:1` - Add a limited item
+10. `/restock Health Potion quantity:20` - Restock an item
+11. `/clear_shop` - Clear all items (to create a new shop)
 
 ## Troubleshooting
 
