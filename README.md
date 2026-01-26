@@ -71,13 +71,78 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=20
 
 ## Usage
 
-### Running the Bot
+### Running the Bot Locally
 
 ```bash
 python bot.py
 ```
 
 The bot will connect to Discord and sync all slash commands.
+
+### Deploying on Oracle VM (or any Linux server)
+
+The repository includes deployment scripts for running the bot as a systemd service with a Python virtual environment.
+
+#### Quick Deployment
+
+1. Clone the repository on your Oracle VM:
+```bash
+git clone https://github.com/j-a-hill/player_tracker.git
+cd player_tracker
+```
+
+2. Make sure you have your `.env` and `credentials.json` files set up
+
+3. Run the deployment script:
+```bash
+./deploy.sh
+```
+
+The script will:
+- Create a Python virtual environment
+- Install all dependencies
+- Configure a systemd service
+- Optionally start the bot
+
+#### Managing the Service
+
+After deployment, use these commands to manage the bot:
+
+```bash
+./start.sh      # Start the bot
+./stop.sh       # Stop the bot
+./restart.sh    # Restart the bot
+./status.sh     # Check bot status
+./logs.sh       # View logs (last 50 lines)
+./logs.sh -f    # Follow logs in real-time
+./logs.sh -n 100  # View last 100 lines
+```
+
+Or use systemctl directly:
+```bash
+sudo systemctl start player_tracker
+sudo systemctl stop player_tracker
+sudo systemctl restart player_tracker
+sudo systemctl status player_tracker
+sudo journalctl -u player_tracker -f  # View logs
+```
+
+#### Auto-start on Boot
+
+To make the bot start automatically when the server reboots:
+```bash
+sudo systemctl enable player_tracker
+```
+
+#### Updating the Bot
+
+To update the bot after pulling changes from git:
+```bash
+git pull
+source venv/bin/activate
+pip install -r requirements.txt
+./restart.sh
+```
 
 ### Player Commands
 
