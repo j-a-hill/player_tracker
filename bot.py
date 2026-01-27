@@ -13,7 +13,8 @@ from dnd_utils import (
     get_xp_progress, 
     format_currency,
     create_progress_bar,
-    get_xp_for_level
+    get_xp_for_level,
+    parse_currency_input
 )
 from typing import Optional
 
@@ -25,21 +26,11 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 SHEET_ID = os.getenv('GOOGLE_SHEET_ID')
 GM_ROLE_ID = os.getenv('GM_ROLE_ID')
 
-# Currency mapping constants
-CURRENCY_MAP = {
-    'cp': 'copper',
-    'sp': 'silver',
-    'ep': 'electrum',
-    'gp': 'gold',
-    'pp': 'platinum'
-}
-
+# Currency mapping constants (removed pp and ep)
 CURRENCY_NAMES = {
     'cp': 'copper',
     'sp': 'silver',
-    'ep': 'electrum',
-    'gp': 'gold',
-    'pp': 'platinum'
+    'gp': 'gold'
 }
 
 # Initialize bot with intents
@@ -121,14 +112,8 @@ async def profile(interaction: discord.Interaction):
     
     embed.add_field(name="⭐ Experience", value=xp_text, inline=False)
     
-    # Currency info
-    currency_text = format_currency(
-        cp=player['copper'],
-        sp=player['silver'],
-        ep=player['electrum'],
-        gp=player['gold'],
-        pp=player['platinum']
-    )
+    # Currency info - display from copper value
+    currency_text = format_currency(player['copper'])
     embed.add_field(name="💰 Currency", value=currency_text, inline=False)
     
     inventory_text = "\n".join(player['inventory']) if player['inventory'] else "Empty"
@@ -167,14 +152,8 @@ async def inventory(interaction: discord.Interaction):
     
     embed.description = inventory_text
     
-    # Currency info
-    currency_text = format_currency(
-        cp=player['copper'],
-        sp=player['silver'],
-        ep=player['electrum'],
-        gp=player['gold'],
-        pp=player['platinum']
-    )
+    # Currency info - display from copper value
+    currency_text = format_currency(player['copper'])
     embed.add_field(name="💰 Currency", value=currency_text, inline=False)
     
     await interaction.response.send_message(embed=embed)
@@ -281,11 +260,14 @@ async def add_gold(interaction: discord.Interaction, player: discord.Member, amo
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
     
-    new_gold = player_data['gold'] + amount
-    storage.update_player(player_id, player_data, gold=new_gold)
+    # Convert gold to copper and add
+    copper_to_add = parse_currency_input(amount, 'gp')
+    new_copper = player_data['copper'] + copper_to_add
+    storage.update_player(player_id, player_data, copper=new_copper)
     
+    currency_display = format_currency(new_copper)
     await interaction.response.send_message(
-        f"✅ Added {amount} gold to {player.mention}. New total: {new_gold} gold"
+        f"✅ Added {amount} gold to {player.mention}. New total: {currency_display}"
     )
 
 
@@ -304,11 +286,14 @@ async def remove_gold(interaction: discord.Interaction, player: discord.Member, 
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
     
-    new_gold = max(0, player_data['gold'] - amount)
-    storage.update_player(player_id, player_data, gold=new_gold)
+    # Convert gold to copper and remove
+    copper_to_remove = parse_currency_input(amount, 'gp')
+    new_copper = max(0, player_data['copper'] - copper_to_remove)
+    storage.update_player(player_id, player_data, copper=new_copper)
     
+    currency_display = format_currency(new_copper)
     await interaction.response.send_message(
-        f"✅ Removed {amount} gold from {player.mention}. New total: {new_gold} gold"
+        f"✅ Removed {amount} gold from {player.mention}. New total: {currency_display}"
     )
 
 
@@ -316,14 +301,12 @@ async def remove_gold(interaction: discord.Interaction, player: discord.Member, 
 @app_commands.describe(
     player="The player to give currency to",
     amount="Amount of currency to add",
-    currency_type="Type of currency (cp, sp, ep, gp, pp)"
+    currency_type="Type of currency (cp, sp, gp)"
 )
 @app_commands.choices(currency_type=[
     app_commands.Choice(name="Copper (cp)", value="cp"),
     app_commands.Choice(name="Silver (sp)", value="sp"),
-    app_commands.Choice(name="Electrum (ep)", value="ep"),
     app_commands.Choice(name="Gold (gp)", value="gp"),
-    app_commands.Choice(name="Platinum (pp)", value="pp"),
 ])
 @is_gm()
 async def add_currency(interaction: discord.Interaction, player: discord.Member, amount: int, currency_type: str):
@@ -338,15 +321,14 @@ async def add_currency(interaction: discord.Interaction, player: discord.Member,
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
     
-    field_name = CURRENCY_MAP[currency_type]
-    current_amount = player_data[field_name]
-    new_amount = current_amount + amount
+    # Convert to copper and add
+    copper_to_add = parse_currency_input(amount, currency_type)
+    new_copper = player_data['copper'] + copper_to_add
+    storage.update_player(player_id, player_data, copper=new_copper)
     
-    # Update the specific currency
-    storage.update_player(player_id, player_data, **{field_name: new_amount})
-    
+    currency_display = format_currency(new_copper)
     await interaction.response.send_message(
-        f"✅ Added {amount} {CURRENCY_NAMES[currency_type]} to {player.mention}. New total: {new_amount} {currency_type}"
+        f"✅ Added {amount} {CURRENCY_NAMES[currency_type]} to {player.mention}. New total: {currency_display}"
     )
 
 
@@ -354,14 +336,12 @@ async def add_currency(interaction: discord.Interaction, player: discord.Member,
 @app_commands.describe(
     player="The player to remove currency from",
     amount="Amount of currency to remove",
-    currency_type="Type of currency (cp, sp, ep, gp, pp)"
+    currency_type="Type of currency (cp, sp, gp)"
 )
 @app_commands.choices(currency_type=[
     app_commands.Choice(name="Copper (cp)", value="cp"),
     app_commands.Choice(name="Silver (sp)", value="sp"),
-    app_commands.Choice(name="Electrum (ep)", value="ep"),
     app_commands.Choice(name="Gold (gp)", value="gp"),
-    app_commands.Choice(name="Platinum (pp)", value="pp"),
 ])
 @is_gm()
 async def remove_currency(interaction: discord.Interaction, player: discord.Member, amount: int, currency_type: str):
@@ -376,15 +356,14 @@ async def remove_currency(interaction: discord.Interaction, player: discord.Memb
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
     
-    field_name = CURRENCY_MAP[currency_type]
-    current_amount = player_data[field_name]
-    new_amount = max(0, current_amount - amount)
+    # Convert to copper and remove
+    copper_to_remove = parse_currency_input(amount, currency_type)
+    new_copper = max(0, player_data['copper'] - copper_to_remove)
+    storage.update_player(player_id, player_data, copper=new_copper)
     
-    # Update the specific currency
-    storage.update_player(player_id, player_data, **{field_name: new_amount})
-    
+    currency_display = format_currency(new_copper)
     await interaction.response.send_message(
-        f"✅ Removed {amount} {CURRENCY_NAMES[currency_type]} from {player.mention}. New total: {new_amount} {currency_type}"
+        f"✅ Removed {amount} {CURRENCY_NAMES[currency_type]} from {player.mention}. New total: {currency_display}"
     )
 
 
@@ -491,7 +470,7 @@ async def help_command(interaction: discord.Interaction):
     
     embed.add_field(
         name="💵 Currency Types",
-        value="cp (copper), sp (silver), ep (electrum), gp (gold), pp (platinum)",
+        value="cp (copper), sp (silver), gp (gold)\n\nConversions: 1 gp = 10 sp = 100 cp",
         inline=False
     )
     

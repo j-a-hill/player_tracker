@@ -28,12 +28,11 @@ XP_THRESHOLDS = {
 }
 
 # Currency conversion rates (in copper pieces)
+# Removed pp (platinum) and ep (electrum) per requirements
 CURRENCY_VALUES = {
     'cp': 1,      # Copper
     'sp': 10,     # Silver
-    'ep': 50,     # Electrum
     'gp': 100,    # Gold
-    'pp': 1000    # Platinum
 }
 
 
@@ -93,45 +92,50 @@ def get_xp_progress(xp: int) -> tuple:
     return (current_level, current_level_xp, next_level_xp, progress)
 
 
-def format_currency(cp=0, sp=0, ep=0, gp=0, pp=0) -> str:
+def format_currency(total_copper: int = 0) -> str:
     """
-    Format currency into a readable string.
+    Format currency from total copper into a readable string.
+    Converts to highest denominations first (gold, silver, copper).
     
     Args:
-        cp: Copper pieces
-        sp: Silver pieces
-        ep: Electrum pieces
-        gp: Gold pieces
-        pp: Platinum pieces
+        total_copper: Total value in copper pieces
         
     Returns:
-        Formatted currency string
+        Formatted currency string (e.g., "5 gp, 3 sp, 7 cp")
     """
-    parts = []
-    if pp > 0:
-        parts.append(f"{pp} pp")
-    if gp > 0:
-        parts.append(f"{gp} gp")
-    if ep > 0:
-        parts.append(f"{ep} ep")
-    if sp > 0:
-        parts.append(f"{sp} sp")
-    if cp > 0:
-        parts.append(f"{cp} cp")
+    if total_copper <= 0:
+        return "0 cp"
     
-    return ", ".join(parts) if parts else "0 gp"
+    parts = []
+    remaining = total_copper
+    
+    # Convert to gold pieces (100 cp = 1 gp)
+    if remaining >= 100:
+        gp = remaining // 100
+        parts.append(f"{gp} gp")
+        remaining = remaining % 100
+    
+    # Convert to silver pieces (10 cp = 1 sp)
+    if remaining >= 10:
+        sp = remaining // 10
+        parts.append(f"{sp} sp")
+        remaining = remaining % 10
+    
+    # Remaining copper pieces
+    if remaining > 0:
+        parts.append(f"{remaining} cp")
+    
+    return ", ".join(parts)
 
 
-def convert_to_copper(cp=0, sp=0, ep=0, gp=0, pp=0) -> int:
+def convert_to_copper(cp=0, sp=0, gp=0) -> int:
     """
-    Convert all currency to copper pieces.
+    Convert currency to copper pieces.
     
     Args:
         cp: Copper pieces
         sp: Silver pieces
-        ep: Electrum pieces
         gp: Gold pieces
-        pp: Platinum pieces
         
     Returns:
         Total value in copper pieces
@@ -139,10 +143,25 @@ def convert_to_copper(cp=0, sp=0, ep=0, gp=0, pp=0) -> int:
     total = 0
     total += cp * CURRENCY_VALUES['cp']
     total += sp * CURRENCY_VALUES['sp']
-    total += ep * CURRENCY_VALUES['ep']
     total += gp * CURRENCY_VALUES['gp']
-    total += pp * CURRENCY_VALUES['pp']
     return total
+
+
+def parse_currency_input(amount: int, currency_type: str) -> int:
+    """
+    Convert a currency amount and type to copper pieces.
+    
+    Args:
+        amount: Amount of currency
+        currency_type: Type of currency (cp, sp, or gp)
+        
+    Returns:
+        Total value in copper pieces
+    """
+    if currency_type not in CURRENCY_VALUES:
+        raise ValueError(f"Invalid currency type: {currency_type}")
+    
+    return amount * CURRENCY_VALUES[currency_type]
 
 
 def create_progress_bar(percentage: float, length: int = 10) -> str:

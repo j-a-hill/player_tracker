@@ -8,7 +8,7 @@ from discord import app_commands
 import os
 from dotenv import load_dotenv
 from storage import PlayerStorage
-from dnd_utils import format_currency
+from dnd_utils import format_currency, parse_currency_input
 from typing import Optional
 
 # Load environment variables
@@ -19,21 +19,11 @@ TOKEN = os.getenv('MERCHANT_BOT_TOKEN')
 SHEET_ID = os.getenv('GOOGLE_SHEET_ID')
 GM_ROLE_ID = os.getenv('GM_ROLE_ID')
 
-# Currency mapping constants
-CURRENCY_MAP = {
-    'cp': 'copper',
-    'sp': 'silver',
-    'ep': 'electrum',
-    'gp': 'gold',
-    'pp': 'platinum'
-}
-
+# Currency mapping constants (removed pp and ep)
 CURRENCY_NAMES = {
     'cp': 'copper',
     'sp': 'silver',
-    'ep': 'electrum',
-    'gp': 'gold',
-    'pp': 'platinum'
+    'gp': 'gold'
 }
 
 # Initialize bot with intents
@@ -173,24 +163,26 @@ async def buy(interaction: discord.Interaction, item: str, quantity: int = 1):
     
     # Get currency type
     currency_type = shop_item.get('currency', 'gp')
-    field_name = CURRENCY_MAP[currency_type]
-    player_currency = player[field_name]
+    
+    # Convert cost to copper
+    cost_in_copper = parse_currency_input(total_cost, currency_type)
+    player_copper = player['copper']
     
     # Check if player has enough currency
-    if player_currency < total_cost:
+    if player_copper < cost_in_copper:
         await interaction.response.send_message(
-            f"❌ You don't have enough {currency_type}! You need {total_cost} {currency_type} but only have {player_currency} {currency_type}.",
+            f"❌ You don't have enough currency! You need {total_cost} {currency_type} ({format_currency(cost_in_copper)}) but only have {format_currency(player_copper)}.",
             ephemeral=True
         )
         return
     
     # Purchase items
-    new_currency = player_currency - total_cost
+    new_copper = player_copper - cost_in_copper
     inventory = player['inventory']
     for _ in range(quantity):
         inventory.append(shop_item['name'])
     
-    storage.update_player(player_id, player, inventory=inventory, **{field_name: new_currency})
+    storage.update_player(player_id, player, inventory=inventory, copper=new_copper)
     
     # Update stock
     if shop_item['stock'] >= 0:
@@ -199,7 +191,7 @@ async def buy(interaction: discord.Interaction, item: str, quantity: int = 1):
     
     quantity_text = f"{quantity}x " if quantity > 1 else ""
     await interaction.response.send_message(
-        f"✅ Purchased {quantity_text}**{shop_item['name']}** for {total_cost} {currency_type}! You now have {new_currency} {currency_type} remaining."
+        f"✅ Purchased {quantity_text}**{shop_item['name']}** for {total_cost} {currency_type}! You now have {format_currency(new_copper)} remaining."
     )
 
 
@@ -215,9 +207,7 @@ async def buy(interaction: discord.Interaction, item: str, quantity: int = 1):
 @app_commands.choices(currency=[
     app_commands.Choice(name="Copper (cp)", value="cp"),
     app_commands.Choice(name="Silver (sp)", value="sp"),
-    app_commands.Choice(name="Electrum (ep)", value="ep"),
     app_commands.Choice(name="Gold (gp)", value="gp"),
-    app_commands.Choice(name="Platinum (pp)", value="pp"),
 ])
 @is_gm()
 async def add_item(
