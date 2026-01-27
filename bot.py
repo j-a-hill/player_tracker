@@ -245,59 +245,7 @@ async def remove_xp(interaction: discord.Interaction, player: discord.Member, am
         )
 
 
-@bot.tree.command(name="add_gold", description="[GM] Add gold to a player")
-@app_commands.describe(player="The player to give gold to", amount="Amount of gold to add")
-@is_gm()
-async def add_gold(interaction: discord.Interaction, player: discord.Member, amount: int):
-    """Add gold to a player."""
-    if not storage:
-        await interaction.response.send_message("Storage not configured!", ephemeral=True)
-        return
-    
-    player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
-    
-    # Convert gold to copper and add
-    copper_to_add = parse_currency_input(amount, 'gp')
-    new_copper = player_data['copper'] + copper_to_add
-    storage.update_player(player_id, player_data, copper=new_copper)
-    
-    currency_display = format_currency(new_copper)
-    await interaction.response.send_message(
-        f"✅ Added {amount} gold to {player.mention}. New total: {currency_display}"
-    )
-
-
-@bot.tree.command(name="remove_gold", description="[GM] Remove gold from a player")
-@app_commands.describe(player="The player to remove gold from", amount="Amount of gold to remove")
-@is_gm()
-async def remove_gold(interaction: discord.Interaction, player: discord.Member, amount: int):
-    """Remove gold from a player."""
-    if not storage:
-        await interaction.response.send_message("Storage not configured!", ephemeral=True)
-        return
-    
-    player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
-    
-    # Convert gold to copper and remove
-    copper_to_remove = parse_currency_input(amount, 'gp')
-    new_copper = max(0, player_data['copper'] - copper_to_remove)
-    storage.update_player(player_id, player_data, copper=new_copper)
-    
-    currency_display = format_currency(new_copper)
-    await interaction.response.send_message(
-        f"✅ Removed {amount} gold from {player.mention}. New total: {currency_display}"
-    )
-
-
-@bot.tree.command(name="add_currency", description="[GM] Add currency to a player")
+@bot.tree.command(name="add_gold", description="[GM] Add currency to a player")
 @app_commands.describe(
     player="The player to give currency to",
     amount="Amount of currency to add",
@@ -309,7 +257,7 @@ async def remove_gold(interaction: discord.Interaction, player: discord.Member, 
     app_commands.Choice(name="Gold (gp)", value="gp"),
 ])
 @is_gm()
-async def add_currency(interaction: discord.Interaction, player: discord.Member, amount: int, currency_type: str):
+async def add_gold(interaction: discord.Interaction, player: discord.Member, amount: int, currency_type: str = "gp"):
     """Add currency to a player."""
     if not storage:
         await interaction.response.send_message("Storage not configured!", ephemeral=True)
@@ -332,7 +280,7 @@ async def add_currency(interaction: discord.Interaction, player: discord.Member,
     )
 
 
-@bot.tree.command(name="remove_currency", description="[GM] Remove currency from a player")
+@bot.tree.command(name="remove_gold", description="[GM] Remove currency from a player")
 @app_commands.describe(
     player="The player to remove currency from",
     amount="Amount of currency to remove",
@@ -344,7 +292,7 @@ async def add_currency(interaction: discord.Interaction, player: discord.Member,
     app_commands.Choice(name="Gold (gp)", value="gp"),
 ])
 @is_gm()
-async def remove_currency(interaction: discord.Interaction, player: discord.Member, amount: int, currency_type: str):
+async def remove_gold(interaction: discord.Interaction, player: discord.Member, amount: int, currency_type: str = "gp"):
     """Remove currency from a player."""
     if not storage:
         await interaction.response.send_message("Storage not configured!", ephemeral=True)
@@ -451,10 +399,8 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(
         name="💰 GM Commands - Currency",
         value=(
-            "`/add_currency <player> <amount> <type>` - Add any currency\n"
-            "`/remove_currency <player> <amount> <type>` - Remove currency\n"
-            "`/add_gold <player> <amount>` - Quick add gold\n"
-            "`/remove_gold <player> <amount>` - Quick remove gold"
+            "`/add_gold <player> <amount> [type]` - Add currency (default: gold)\n"
+            "`/remove_gold <player> <amount> [type]` - Remove currency (default: gold)"
         ),
         inline=False
     )

@@ -185,10 +185,8 @@ pip install -r requirements.txt
 - `/remove_xp <player> <amount>` - Remove XP from a player
 
 **Currency Management:**
-- `/add_currency <player> <amount> <type>` - Add any type of currency (cp, sp, ep, gp, pp)
-- `/remove_currency <player> <amount> <type>` - Remove any type of currency
-- `/add_gold <player> <amount>` - Quick command to add gold
-- `/remove_gold <player> <amount>` - Quick command to remove gold
+- `/add_gold <player> <amount> [currency_type]` - Add currency to a player (defaults to gold, supports cp, sp, gp)
+- `/remove_gold <player> <amount> [currency_type]` - Remove currency from a player (defaults to gold, supports cp, sp, gp)
 
 **Inventory Management:**
 - `/give_item <player> <item>` - Give an item to a player
