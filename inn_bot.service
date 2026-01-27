@@ -1,0 +1,15 @@
+[Unit]
+Description=Inn Bot Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/player_tracker
+Environment="PATH=/home/YOUR_USERNAME/player_tracker/venv/bin"
+ExecStart=/home/YOUR_USERNAME/player_tracker/venv/bin/python /home/YOUR_USERNAME/player_tracker/inn_bot.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
