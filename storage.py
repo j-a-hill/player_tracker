@@ -136,6 +136,10 @@ class PlayerStorage:
             }
             
         try:
+            # Get the next row number before appending
+            all_values = self.players_sheet.get_all_values()
+            next_row = len(all_values) + 1
+            
             self.players_sheet.append_row([str(player_id), name, 0, 0, 0, 0, 0, 0, '[]'])
             return {
                 'player_id': str(player_id),
@@ -146,7 +150,8 @@ class PlayerStorage:
                 'electrum': 0,
                 'gold': 0,
                 'platinum': 0,
-                'inventory': []
+                'inventory': [],
+                'row': next_row  # Include row number for immediate updates
             }
         except Exception as e:
             print(f"Error creating player: {e}")
@@ -162,17 +167,29 @@ class PlayerStorage:
                 'inventory': []
             }
     
-    def update_player(self, player_id: str, **kwargs):
-        """Update player data."""
+    def update_player(self, player_id: str, player_data: Optional[Dict] = None, **kwargs):
+        """
+        Update player data.
+        
+        Args:
+            player_id: Discord ID of the player
+            player_data: Optional cached player data (from recent get_player or create_player)
+            **kwargs: Fields to update (xp, copper, silver, electrum, gold, platinum, inventory)
+        """
         if not self.players_sheet:
             return
             
         try:
-            player = self.get_player(player_id)
+            # Use provided player_data if available, otherwise fetch it
+            player = player_data if player_data else self.get_player(player_id)
             if not player:
+                print(f"Warning: Player {player_id} not found for update")
                 return
             
-            row = player['row']
+            row = player.get('row')
+            if not row:
+                print(f"Warning: No row number for player {player_id}")
+                return
             
             # Collect all updates to do them in a single batch
             updates = []
@@ -208,13 +225,18 @@ class PlayerStorage:
             records = self.shop_sheet.get_all_records()
             items = []
             for idx, record in enumerate(records, start=2):  # Start at 2 (header is row 1)
+                # Skip items with empty or missing name
+                item_name = record.get('Item Name', '').strip()
+                if not item_name:
+                    continue
+                
                 try:
                     price = int(record.get('Price', 0))
                 except (ValueError, TypeError):
                     price = 0
                 
                 # Get currency type (default to 'gp' for backwards compatibility)
-                currency = record.get('Currency', 'gp').lower()
+                currency = str(record.get('Currency', 'gp')).strip().lower()
                 if currency not in ['cp', 'sp', 'ep', 'gp', 'pp']:
                     currency = 'gp'
                 
@@ -224,10 +246,10 @@ class PlayerStorage:
                     stock = -1
                 
                 items.append({
-                    'name': record.get('Item Name', ''),
+                    'name': item_name,
                     'price': price,
                     'currency': currency,
-                    'description': record.get('Description', ''),
+                    'description': record.get('Description', '').strip(),
                     'stock': stock,
                     'row': idx
                 })

@@ -201,7 +201,7 @@ async def add_xp(interaction: discord.Interaction, player: discord.Member, amoun
     old_level = get_level_from_xp(old_xp)
     new_level = get_level_from_xp(new_xp)
     
-    storage.update_player(player_id, xp=new_xp)
+    storage.update_player(player_id, player_data, xp=new_xp)
     
     # Check for level up
     if new_level > old_level:
@@ -253,7 +253,7 @@ async def remove_xp(interaction: discord.Interaction, player: discord.Member, am
     old_level = get_level_from_xp(old_xp)
     new_level = get_level_from_xp(new_xp)
     
-    storage.update_player(player_id, xp=new_xp)
+    storage.update_player(player_id, player_data, xp=new_xp)
     
     # Check for level down
     if new_level < old_level:
@@ -282,7 +282,7 @@ async def add_gold(interaction: discord.Interaction, player: discord.Member, amo
         player_data = storage.create_player(player_id, player.display_name)
     
     new_gold = player_data['gold'] + amount
-    storage.update_player(player_id, gold=new_gold)
+    storage.update_player(player_id, player_data, gold=new_gold)
     
     await interaction.response.send_message(
         f"✅ Added {amount} gold to {player.mention}. New total: {new_gold} gold"
@@ -305,7 +305,7 @@ async def remove_gold(interaction: discord.Interaction, player: discord.Member, 
         player_data = storage.create_player(player_id, player.display_name)
     
     new_gold = max(0, player_data['gold'] - amount)
-    storage.update_player(player_id, gold=new_gold)
+    storage.update_player(player_id, player_data, gold=new_gold)
     
     await interaction.response.send_message(
         f"✅ Removed {amount} gold from {player.mention}. New total: {new_gold} gold"
@@ -343,7 +343,7 @@ async def add_currency(interaction: discord.Interaction, player: discord.Member,
     new_amount = current_amount + amount
     
     # Update the specific currency
-    storage.update_player(player_id, **{field_name: new_amount})
+    storage.update_player(player_id, player_data, **{field_name: new_amount})
     
     await interaction.response.send_message(
         f"✅ Added {amount} {CURRENCY_NAMES[currency_type]} to {player.mention}. New total: {new_amount} {currency_type}"
@@ -381,7 +381,7 @@ async def remove_currency(interaction: discord.Interaction, player: discord.Memb
     new_amount = max(0, current_amount - amount)
     
     # Update the specific currency
-    storage.update_player(player_id, **{field_name: new_amount})
+    storage.update_player(player_id, player_data, **{field_name: new_amount})
     
     await interaction.response.send_message(
         f"✅ Removed {amount} {CURRENCY_NAMES[currency_type]} from {player.mention}. New total: {new_amount} {currency_type}"
@@ -405,7 +405,7 @@ async def give_item(interaction: discord.Interaction, player: discord.Member, it
     
     inventory = player_data['inventory']
     inventory.append(item)
-    storage.update_player(player_id, inventory=inventory)
+    storage.update_player(player_id, player_data, inventory=inventory)
     
     await interaction.response.send_message(
         f"✅ Gave **{item}** to {player.mention}"
@@ -431,7 +431,7 @@ async def remove_item(interaction: discord.Interaction, player: discord.Member, 
     inventory = player_data['inventory']
     if item in inventory:
         inventory.remove(item)
-        storage.update_player(player_id, inventory=inventory)
+        storage.update_player(player_id, player_data, inventory=inventory)
         await interaction.response.send_message(
             f"✅ Removed **{item}** from {player.mention}"
         )
