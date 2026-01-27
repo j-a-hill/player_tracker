@@ -207,6 +207,13 @@ sudo systemctl stop inn_bot
 sudo systemctl restart inn_bot
 sudo systemctl status inn_bot
 sudo journalctl -u inn_bot -f
+
+# Adventure Bot (NEW)
+sudo systemctl start adventure_bot
+sudo systemctl stop adventure_bot
+sudo systemctl restart adventure_bot
+sudo systemctl status adventure_bot
+sudo journalctl -u adventure_bot -f
 ```
 
 #### Auto-start on Boot
@@ -217,6 +224,7 @@ sudo systemctl enable player_tracker
 sudo systemctl enable merchant_bot
 sudo systemctl enable timekeeper_bot
 sudo systemctl enable inn_bot
+sudo systemctl enable adventure_bot
 ```
 
 #### Updating the Bot
