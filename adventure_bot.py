@@ -61,7 +61,8 @@ def load_adventures(config_file: str = 'adventures.yaml'):
         try:
             with open(config_file, 'r') as f:
                 adventures = yaml.safe_load(f)
-        except:
+        except Exception as e:
+            print(f"Error loading created example file: {e}")
             adventures = {'adventures': {}}
     except Exception as e:
         print(f"Error loading adventures: {e}")
@@ -204,6 +205,11 @@ class AdventureView(discord.ui.View):
             button.callback = self.create_callback(choice)
             self.add_item(button)
     
+    async def on_timeout(self):
+        """Handle timeout by disabling all buttons."""
+        for item in self.children:
+            item.disabled = True
+    
     def create_callback(self, choice):
         """Create a callback function for a button."""
         async def callback(interaction: discord.Interaction):
@@ -222,6 +228,8 @@ class AdventureView(discord.ui.View):
                     player = storage.create_player(self.user_id, interaction.user.display_name)
                 
                 req = choice['requirement']
+                
+                # Check gold requirement
                 if 'gold' in req:
                     # Convert copper to gold for comparison
                     player_gold = player['copper'] / 100
@@ -231,8 +239,22 @@ class AdventureView(discord.ui.View):
                             ephemeral=True
                         )
                         return
+                
+                # Check items requirement
+                if 'items' in req:
+                    for required_item in req['items']:
+                        if required_item not in player['inventory']:
+                            await interaction.response.send_message(
+                                f"❌ You don't have {required_item}!",
+                                ephemeral=True
+                            )
+                            return
             
             # Process the choice
+            # Disable all buttons after choice is made
+            for item in self.children:
+                item.disabled = True
+            
             next_node = choice.get('next')
             if next_node:
                 await show_adventure_node(
@@ -240,12 +262,9 @@ class AdventureView(discord.ui.View):
                     self.adventure_id,
                     next_node,
                     self.user_id,
-                    is_followup=True
+                    is_followup=True,
+                    disabled_view=self
                 )
-            
-            # Disable all buttons after choice is made
-            for item in self.children:
-                item.disabled = True
             
         return callback
 
@@ -255,7 +274,8 @@ async def show_adventure_node(
     adventure_id: str,
     node_id: str,
     user_id: str,
-    is_followup: bool = False
+    is_followup: bool = False,
+    disabled_view: Optional[discord.ui.View] = None
 ):
     """Display an adventure node to the user."""
     adventure = adventures.get('adventures', {}).get(adventure_id, {})
@@ -283,28 +303,29 @@ async def show_adventure_node(
         if not player:
             player = storage.create_player(user_id, interaction.user.display_name)
         
-        # Apply rewards
+        # Accumulate all changes to apply in a single update
+        updates = {}
         rewards_text = []
+        
+        # Apply rewards
         if 'rewards' in node:
             rewards = node['rewards']
             
             if 'gold' in rewards:
                 copper_to_add = rewards['gold'] * 100
-                new_copper = player['copper'] + copper_to_add
-                storage.update_player(user_id, player, copper=new_copper)
+                updates['copper'] = player['copper'] + copper_to_add
                 rewards_text.append(f"💰 +{rewards['gold']} gp")
             
             if 'xp' in rewards:
-                new_xp = player['xp'] + rewards['xp']
-                storage.update_player(user_id, player, xp=new_xp)
+                updates['xp'] = player['xp'] + rewards['xp']
                 rewards_text.append(f"⭐ +{rewards['xp']} XP")
             
             if 'items' in rewards:
-                inventory = player['inventory']
+                inventory = player['inventory'].copy()
                 for item in rewards['items']:
                     inventory.append(item)
                     rewards_text.append(f"🎒 +{item}")
-                storage.update_player(user_id, player, inventory=inventory)
+                updates['inventory'] = inventory
         
         # Apply penalties
         if 'penalties' in node:
@@ -312,22 +333,28 @@ async def show_adventure_node(
             
             if 'gold' in penalties:
                 copper_to_remove = penalties['gold'] * 100
-                new_copper = max(0, player['copper'] - copper_to_remove)
-                storage.update_player(user_id, player, copper=new_copper)
+                current_copper = updates.get('copper', player['copper'])
+                updates['copper'] = max(0, current_copper - copper_to_remove)
                 rewards_text.append(f"💸 -{penalties['gold']} gp")
             
             if 'xp' in penalties:
-                new_xp = max(0, player['xp'] - penalties['xp'])
-                storage.update_player(user_id, player, xp=new_xp)
+                current_xp = updates.get('xp', player['xp'])
+                updates['xp'] = max(0, current_xp - penalties['xp'])
                 rewards_text.append(f"📉 -{penalties['xp']} XP")
             
             if 'items' in penalties:
-                inventory = player['inventory']
+                inventory = updates.get('inventory', player['inventory'].copy())
                 for item in penalties['items']:
                     if item in inventory:
                         inventory.remove(item)
                         rewards_text.append(f"🗑️ Lost {item}")
-                storage.update_player(user_id, player, inventory=inventory)
+                    else:
+                        rewards_text.append(f"⚠️ Could not remove {item} (not in inventory)")
+                updates['inventory'] = inventory
+        
+        # Apply all updates in a single call
+        if updates:
+            storage.update_player(user_id, player, **updates)
         
         if rewards_text:
             embed.add_field(
@@ -338,8 +365,12 @@ async def show_adventure_node(
         
         embed.set_footer(text="Adventure Complete!")
         
-        # Send final message without buttons
+        # Send final message without buttons, but first update with disabled buttons if provided
         if is_followup:
+            # First update with disabled buttons from previous view
+            if disabled_view:
+                await interaction.edit_original_response(view=disabled_view)
+            # Then show the final message
             await interaction.edit_original_response(embed=embed, view=None)
         else:
             await interaction.response.send_message(embed=embed)
@@ -348,6 +379,10 @@ async def show_adventure_node(
         view = AdventureView(adventure_id, node_id, user_id)
         
         if is_followup:
+            # First update with disabled buttons from previous view
+            if disabled_view:
+                await interaction.edit_original_response(view=disabled_view)
+            # Then show the new choices
             await interaction.edit_original_response(embed=embed, view=view)
         else:
             await interaction.response.send_message(embed=embed, view=view)
@@ -412,7 +447,7 @@ async def adventure(interaction: discord.Interaction, adventure_name: str):
 
 
 @bot.tree.command(name="adventure_list", description="List all available adventures")
-async def adventure_list(interaction: discord.Interaction):
+async def adventure_list_command(interaction: discord.Interaction):
     """List all available adventures."""
     embed = discord.Embed(
         title="🎭 Available Adventures",
@@ -420,11 +455,11 @@ async def adventure_list(interaction: discord.Interaction):
         color=discord.Color.blue()
     )
     
-    adventure_list = adventures.get('adventures', {})
-    if not adventure_list:
+    available_adventures = adventures.get('adventures', {})
+    if not available_adventures:
         embed.description = "No adventures available. Ask your GM to add some!"
     else:
-        for adv_id, adv_data in adventure_list.items():
+        for adv_id, adv_data in available_adventures.items():
             embed.add_field(
                 name=adv_data['name'],
                 value=adv_data.get('description', 'No description'),
