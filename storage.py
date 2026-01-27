@@ -137,8 +137,8 @@ class PlayerStorage:
             
         try:
             # Get the next row number before appending
-            all_values = self.players_sheet.get_all_values()
-            next_row = len(all_values) + 1
+            # Using row_count is more efficient than get_all_values()
+            next_row = self.players_sheet.row_count + 1
             
             self.players_sheet.append_row([str(player_id), name, 0, 0, 0, 0, 0, 0, '[]'])
             return {
@@ -236,7 +236,7 @@ class PlayerStorage:
                     price = 0
                 
                 # Get currency type (default to 'gp' for backwards compatibility)
-                currency = str(record.get('Currency', 'gp')).strip().lower()
+                currency = str(record.get('Currency') or 'gp').strip().lower()
                 if currency not in ['cp', 'sp', 'ep', 'gp', 'pp']:
                     currency = 'gp'
                 
