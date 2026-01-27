@@ -19,13 +19,13 @@ fi
 # Default to follow mode
 if [ "$1" = "-f" ] || [ "$1" = "--follow" ]; then
     echo "Following $SERVICE_NAME logs (Ctrl+C to exit)..."
-    sudo journalctl -u $SERVICE -f
+    sudo journalctl -u "$SERVICE" -f
 elif [ "$1" = "-n" ] && [ -n "$2" ] && [[ "$2" =~ ^[0-9]+$ ]]; then
     echo "Showing last $2 $SERVICE_NAME log lines..."
-    sudo journalctl -u $SERVICE -n "$2" --no-pager
+    sudo journalctl -u "$SERVICE" -n "$2" --no-pager
 else
     echo "Showing last 50 $SERVICE_NAME log lines..."
-    sudo journalctl -u $SERVICE -n 50 --no-pager
+    sudo journalctl -u "$SERVICE" -n 50 --no-pager
     echo ""
     echo "Usage:"
     echo "  ./logs.sh [bot]           - Show last 50 lines"
