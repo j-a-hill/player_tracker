@@ -6,6 +6,18 @@ if [ "$1" = "merchant" ]; then
     shift
     SERVICE="merchant_bot"
     SERVICE_NAME="Merchant Bot"
+elif [ "$1" = "timekeeper" ]; then
+    shift
+    SERVICE="timekeeper_bot"
+    SERVICE_NAME="Timekeeper Bot"
+elif [ "$1" = "inn" ]; then
+    shift
+    SERVICE="inn_bot"
+    SERVICE_NAME="Inn Bot"
+elif [ "$1" = "adventure" ]; then
+    shift
+    SERVICE="adventure_bot"
+    SERVICE_NAME="Adventure Bot"
 elif [ "$1" = "tracker" ] || [ "$1" = "player" ]; then
     shift
     SERVICE="player_tracker"
@@ -35,4 +47,7 @@ else
     echo "Where [bot] is one of:"
     echo "  tracker/player  - Player Tracker bot (default)"
     echo "  merchant        - Merchant bot"
+    echo "  timekeeper      - Timekeeper bot"
+    echo "  inn             - Inn bot"
+    echo "  adventure       - Adventure bot"
 fi
