@@ -41,12 +41,31 @@ class PlayerStorage:
             
         try:
             self.players_sheet = self.spreadsheet.worksheet('Players')
+            # Check if headers exist, if not add them
+            existing_data = self.players_sheet.get_all_values()
+            if not existing_data or len(existing_data) == 0:
+                self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory'])
+            elif existing_data[0] != ['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory']:
+                # Headers exist but are incorrect, insert them at the top
+                self.players_sheet.insert_row(['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory'], 1)
         except gspread.exceptions.WorksheetNotFound:
             self.players_sheet = self.spreadsheet.add_worksheet('Players', 100, 10)
             self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory'])
         
         try:
             self.shop_sheet = self.spreadsheet.worksheet('Shop')
+            # Check if headers exist, if not add them
+            existing_data = self.shop_sheet.get_all_values()
+            if not existing_data or len(existing_data) == 0:
+                self.shop_sheet.append_row(['Item Name', 'Price', 'Currency', 'Description', 'Stock'])
+                # Add some default items
+                self.shop_sheet.append_row(['Health Potion', '50', 'gp', 'Restores 50 HP', '10'])
+                self.shop_sheet.append_row(['Mana Potion', '40', 'gp', 'Restores 30 MP', '10'])
+                self.shop_sheet.append_row(['Sword', '100', 'gp', 'A basic sword', '5'])
+                self.shop_sheet.append_row(['Shield', '80', 'gp', 'A basic shield', '5'])
+            elif existing_data[0] != ['Item Name', 'Price', 'Currency', 'Description', 'Stock']:
+                # Headers exist but are incorrect, insert them at the top
+                self.shop_sheet.insert_row(['Item Name', 'Price', 'Currency', 'Description', 'Stock'], 1)
         except gspread.exceptions.WorksheetNotFound:
             self.shop_sheet = self.spreadsheet.add_worksheet('Shop', 100, 10)
             self.shop_sheet.append_row(['Item Name', 'Price', 'Currency', 'Description', 'Stock'])
@@ -136,11 +155,13 @@ class PlayerStorage:
             }
             
         try:
-            # Get the next row number before appending
-            # Using row_count is more efficient than get_all_values()
-            next_row = self.players_sheet.row_count + 1
-            
+            # Append the new player row
             self.players_sheet.append_row([str(player_id), name, 0, 0, 0, 0, 0, 0, '[]'])
+            
+            # Get the actual row number by counting existing rows
+            # This is more reliable than using row_count which includes empty rows
+            next_row = len(self.players_sheet.get_all_values())
+            
             return {
                 'player_id': str(player_id),
                 'name': name,
