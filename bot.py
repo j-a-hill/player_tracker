@@ -159,6 +159,142 @@ async def inventory(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
+@bot.tree.command(name="training", description="View or start training in a skill or language")
+@app_commands.describe(
+    action="What to do with training",
+    training_type="Type of training (skill or language)",
+    name="Name of the skill or language to train"
+)
+@app_commands.choices(
+    action=[
+        app_commands.Choice(name="View Progress", value="view"),
+        app_commands.Choice(name="Start Training", value="start"),
+        app_commands.Choice(name="List Available", value="list")
+    ],
+    training_type=[
+        app_commands.Choice(name="Skill", value="skill"),
+        app_commands.Choice(name="Language", value="language")
+    ]
+)
+async def training(
+    interaction: discord.Interaction,
+    action: str,
+    training_type: Optional[str] = None,
+    name: Optional[str] = None
+):
+    """Manage character training."""
+    if not storage:
+        await interaction.response.send_message("Storage not configured!", ephemeral=True)
+        return
+    
+    player_id = str(interaction.user.id)
+    player = storage.get_player(player_id)
+    
+    if not player:
+        player = storage.create_player(player_id, interaction.user.display_name)
+    
+    if action == "view":
+        # Show current training progress
+        training_list = storage.get_player_training(player_id)
+        
+        embed = discord.Embed(
+            title=f"📚 {player['name']}'s Training Progress",
+            color=discord.Color.blue()
+        )
+        
+        if training_list:
+            for training in training_list:
+                progress_pct = (training['days_spent'] / training['days_required']) * 100
+                progress_bar = create_progress_bar(progress_pct / 100)
+                status_emoji = "✅" if training['status'] == 'Complete' else "⏳"
+                
+                embed.add_field(
+                    name=f"{status_emoji} {training['training_type']}: {training['skill_or_language']}",
+                    value=f"{training['days_spent']} / {training['days_required']} days\n{progress_bar}",
+                    inline=False
+                )
+        else:
+            embed.description = "You are not currently training in any skills or languages.\nUse `/training start` to begin!"
+        
+        await interaction.response.send_message(embed=embed)
+    
+    elif action == "list":
+        # List available training options
+        if not training_type:
+            await interaction.response.send_message(
+                "Please specify a training type (skill or language) to list options!",
+                ephemeral=True
+            )
+            return
+        
+        options = storage.get_training_options(training_type)
+        
+        embed = discord.Embed(
+            title=f"📖 Available {training_type.title()}s for Training",
+            color=discord.Color.green()
+        )
+        
+        if options:
+            # Group into chunks for better display
+            option_text = ""
+            for opt in options:
+                option_text += f"**{opt['name']}**: {opt['description']}\n"
+            embed.description = option_text
+        else:
+            embed.description = f"No {training_type}s available for training."
+        
+        await interaction.response.send_message(embed=embed)
+    
+    elif action == "start":
+        # Start training
+        if not training_type or not name:
+            await interaction.response.send_message(
+                "Please specify both training type and name to start training!",
+                ephemeral=True
+            )
+            return
+        
+        # Check if option exists
+        options = storage.get_training_options(training_type)
+        option_exists = any(opt['name'].lower() == name.lower() for opt in options)
+        
+        if not option_exists:
+            await interaction.response.send_message(
+                f"❌ **{name}** is not a valid {training_type}! Use `/training list` to see available options.",
+                ephemeral=True
+            )
+            return
+        
+        # Check if already training this
+        current_training = storage.get_player_training(player_id)
+        for training in current_training:
+            if training['skill_or_language'].lower() == name.lower():
+                if training['status'] == 'Complete':
+                    await interaction.response.send_message(
+                        f"✅ You have already completed training in **{name}**!",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.response.send_message(
+                        f"⏳ You are already training in **{name}** ({training['days_spent']}/{training['days_required']} days).",
+                        ephemeral=True
+                    )
+                return
+        
+        # Start the training
+        success = storage.start_training(player_id, training_type.title(), name.title())
+        
+        if success:
+            await interaction.response.send_message(
+                f"✅ Started training in **{name.title()}**! Training requires 250 days of downtime. Progress will be tracked automatically by the timekeeper."
+            )
+        else:
+            await interaction.response.send_message(
+                "❌ Failed to start training. Please try again.",
+                ephemeral=True
+            )
+
+
 # GM Commands
 @bot.tree.command(name="add_xp", description="[GM] Add XP to a player")
 @app_commands.describe(player="The player to give XP to", amount="Amount of XP to add")
@@ -382,7 +518,18 @@ async def help_command(interaction: discord.Interaction):
         name="📊 Player Commands",
         value=(
             "`/profile` - View your character profile with level and XP\n"
-            "`/inventory` - View your inventory and currency"
+            "`/inventory` - View your inventory and currency\n"
+            "`/training <action>` - Manage skill/language training"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📚 Training",
+        value=(
+            "`/training view` - See your training progress\n"
+            "`/training list <type>` - List available skills or languages\n"
+            "`/training start <type> <name>` - Start training in a skill/language"
         ),
         inline=False
     )

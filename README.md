@@ -1,24 +1,40 @@
 # Player Tracker - Discord D&D 5e Bot
 
-A Discord bot system for tracking player inventory, XP, and gold in tabletop RPG campaigns. Features two bots: a main player tracker and a separate merchant bot for in-game shopping with inventory management.
+A comprehensive Discord bot system for tracking player inventory, XP, gold, and in-game time in tabletop RPG campaigns. Features four specialized bots working together: player tracker, merchant system, timekeeper, and inn management.
 
 ## Features
 
+### Core Features
 - **Player Management**: Track XP, gold, and inventory for each player
 - **GM Commands**: Add/remove XP, gold, and items from players
-- **Merchant System**: Separate bot for managing shops with custom item lists and stock tracking
-- **Inventory Tracking**: Items can have limited stock that decreases with purchases
-- **Quantity Purchases**: Buy multiple items at once with the `/buy` command
+- **Level System**: Automatic level-up notifications based on D&D 5e XP thresholds
+- **Currency System**: Copper, silver, and gold with automatic conversion
 - **Google Sheets Backend**: All data is stored in Google Sheets for easy access and editing
+
+### Merchant System
+- **Shop Management**: Separate bot for managing shops with custom item lists
+- **Stock Tracking**: Items can have limited stock that decreases with purchases
+- **Quantity Purchases**: Buy multiple items at once with the `/buy` command
+- **Dynamic Pricing**: Support for different currency types (cp, sp, gp)
+
+### Time & Downtime System (NEW)
+- **In-Game Time Tracking**: Automatic or manual time progression with configurable time flow
+- **Training System**: Players can train skills and languages during downtime
+- **Inn Management**: Weekly living expenses with customizable costs per player
+- **Weekly Events**: Automatic notifications for charges and training progress
+
+See [TIMEKEEPER_GUIDE.md](TIMEKEEPER_GUIDE.md) for detailed documentation on the new time tracking features.
 
 ## Setup
 
 ### Prerequisites
 
 - Python 3.8 or higher
-- Two Discord Bot Tokens ([Create them here](https://discord.com/developers/applications))
+- Four Discord Bot Tokens ([Create them here](https://discord.com/developers/applications))
   - One for the main player tracker bot
   - One for the merchant bot
+  - One for the timekeeper bot (NEW)
+  - One for the inn bot (NEW)
 - A Google Cloud Project with Sheets API enabled ([Guide](https://developers.google.com/sheets/api/quickstart/python))
 - Google Service Account credentials JSON file
 
@@ -44,11 +60,19 @@ cp .env.example .env
 ```env
 DISCORD_TOKEN=your_discord_bot_token_here
 MERCHANT_BOT_TOKEN=your_merchant_bot_token_here
+TIMEKEEPER_BOT_TOKEN=your_timekeeper_bot_token_here  # NEW
+INN_BOT_TOKEN=your_inn_bot_token_here  # NEW
 GOOGLE_SHEET_ID=your_google_sheet_id_here
 GM_ROLE_ID=your_gm_role_id_here  # Optional
+NOTIFICATION_CHANNEL_ID=your_notification_channel_id_here  # Optional, for weekly notifications
 ```
 
-5. Place your Google Service Account credentials in the project directory as `credentials.json`
+5. (Optional) Configure timekeeper settings in `timekeeper_config.yaml`:
+   - Adjust time flow rate
+   - Set default inn costs
+   - Configure training requirements
+
+6. Place your Google Service Account credentials in the project directory as `credentials.json`
 
 ### Google Sheets Setup
 
@@ -57,19 +81,23 @@ GM_ROLE_ID=your_gm_role_id_here  # Optional
 3. Copy the Sheet ID from the URL: `https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit`
 4. Add the Sheet ID to your `.env` file
 
-The bot will automatically create the required worksheets:
+The bots will automatically create the required worksheets:
 - **Players**: Stores player data (ID, Name, XP, Gold, Inventory)
 - **Shop**: Stores merchant items (Item Name, Price, Description, Stock)
+- **Training**: Stores player training progress (NEW)
+- **TrainingOptions**: Available skills and languages (NEW)
+- **Timekeeper**: In-game time tracking (NEW)
+- **Inn**: Inn cost and exemption configuration (NEW)
 
 ### Discord Bot Setup
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create **two** applications (one for main bot, one for merchant bot)
+2. Create **four** applications (one for each bot: tracker, merchant, timekeeper, inn)
 3. For each application, add a bot and enable these intents in the Bot section:
    - MESSAGE CONTENT INTENT
    - SERVER MEMBERS INTENT
-4. Copy both bot tokens and add them to your `.env` file as `DISCORD_TOKEN` and `MERCHANT_BOT_TOKEN`
-5. Invite both bots to your server using this URL for each (replace `YOUR_CLIENT_ID`):
+4. Copy all bot tokens and add them to your `.env` file
+5. Invite all bots to your server using this URL for each (replace `YOUR_CLIENT_ID`):
 ```
 https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=2048&scope=bot%20applications.commands
 ```
@@ -78,17 +106,23 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=20
 
 ### Running the Bots Locally
 
-To run the main player tracker bot:
+Run all four bots (each in a separate terminal):
+
 ```bash
+# Terminal 1 - Main Player Tracker
 python bot.py
-```
 
-To run the merchant bot (in a separate terminal):
-```bash
+# Terminal 2 - Merchant Bot
 python merchant_bot.py
+
+# Terminal 3 - Timekeeper Bot (NEW)
+python timekeeper_bot.py
+
+# Terminal 4 - Inn Bot (NEW)
+python inn_bot.py
 ```
 
-Both bots will connect to Discord and sync their slash commands.
+All bots will connect to Discord and sync their slash commands.
 
 ### Deploying on Oracle VM (or any Linux server)
 
@@ -144,14 +178,30 @@ sudo systemctl stop merchant_bot
 sudo systemctl restart merchant_bot
 sudo systemctl status merchant_bot
 sudo journalctl -u merchant_bot -f
+
+# Timekeeper Bot (NEW - requires systemd service file)
+sudo systemctl start timekeeper_bot
+sudo systemctl stop timekeeper_bot
+sudo systemctl restart timekeeper_bot
+sudo systemctl status timekeeper_bot
+sudo journalctl -u timekeeper_bot -f
+
+# Inn Bot (NEW - requires systemd service file)
+sudo systemctl start inn_bot
+sudo systemctl stop inn_bot
+sudo systemctl restart inn_bot
+sudo systemctl status inn_bot
+sudo journalctl -u inn_bot -f
 ```
 
 #### Auto-start on Boot
 
-To make both bots start automatically when the server reboots:
+To make all bots start automatically when the server reboots:
 ```bash
 sudo systemctl enable player_tracker
 sudo systemctl enable merchant_bot
+sudo systemctl enable timekeeper_bot
+sudo systemctl enable inn_bot
 ```
 
 #### Updating the Bot
@@ -169,12 +219,23 @@ pip install -r requirements.txt
 **Main Bot:**
 - `/profile` - View your character profile with XP, gold, and inventory
 - `/inventory` - View your inventory in detail
+- `/training view` - View your current training progress (NEW)
+- `/training list <type>` - List available skills or languages to train (NEW)
+- `/training start <type> <name>` - Start training in a skill or language (NEW)
 - `/help` - Show all available player commands
 
 **Merchant Bot:**
 - `/shop` - Browse items available in the merchant's shop
 - `/buy <item> [quantity]` - Purchase items from the shop (quantity defaults to 1)
 - `/help` - Show all available merchant commands
+
+**Timekeeper Bot (NEW):**
+- `/current_time` - View current in-game date and time
+- `/help` - Show timekeeper commands
+
+**Inn Bot (NEW):**
+- `/inn_status` - View your weekly inn cost and current balance
+- `/help` - Show inn commands
 
 ### GM Commands
 
@@ -199,6 +260,18 @@ pip install -r requirements.txt
 - `/restock <item> <quantity>` - Update item stock quantity (-1 for unlimited)
 - `/clear_shop` - Clear all items from the shop
 
+**Timekeeper Bot (NEW)** - These commands require the GM role (or administrator permissions):
+
+- `/advance_time [hours] [days] [weeks]` - Manually advance in-game time
+- `/set_time <date> [time]` - Set specific in-game date and time
+
+**Inn Bot (NEW)** - These commands require the GM role (or administrator permissions):
+
+- `/set_inn_cost [cost] [player]` - Set weekly inn cost (default or per-player)
+- `/exempt_player <player> [exempt]` - Exempt a player from inn charges
+- `/inn_list` - View all players' inn configurations
+- `/charge_inn` - Manually trigger weekly charges (for testing)
+
 ### Editing Shop Items
 
 You can edit shop items directly in the Google Sheet:
@@ -222,13 +295,51 @@ Using the merchant bot's GM commands, you can create custom shops for different 
 
 ## Architecture
 
-- **bot.py**: Main Discord bot for player tracking (XP, gold, inventory)
+- **bot.py**: Main Discord bot for player tracking (XP, gold, inventory, training)
 - **merchant_bot.py**: Separate Discord bot for merchant/shop system
+- **timekeeper_bot.py**: Separate Discord bot for in-game time tracking (NEW)
+- **inn_bot.py**: Separate Discord bot for inn management (NEW)
 - **storage.py**: Google Sheets integration for data persistence
 - **dnd_utils.py**: D&D 5e game mechanics (XP thresholds, currency conversion, level calculations)
+- **timekeeper_config.yaml**: Configuration for time tracking and weekly events (NEW)
 - **requirements.txt**: Python dependencies
 - **.env**: Configuration file (not committed to git)
 - **credentials.json**: Google service account credentials (not committed to git)
+
+## Time Tracking & Downtime Features
+
+The new timekeeper system adds in-game time tracking, training, and weekly living expenses:
+
+### Quick Start
+
+1. Start the Timekeeper and Inn bots alongside your main bots
+2. Use `/current_time` to see the current in-game date
+3. Players can start training with `/training start type:skill name:Acrobatics`
+4. As time passes (automatically or via `/advance_time`), players:
+   - Progress in their training (7 days per week)
+   - Get charged weekly inn fees
+   - Receive notifications at the end of each week
+
+### Example Workflow
+
+```
+# GM sets up the game
+/set_time date:1492-01-01 time:08:00
+
+# Player starts training
+/training list type:skill
+/training start type:skill name:Stealth
+
+# GM advances time by one week
+/advance_time weeks:1
+
+# Timekeeper automatically:
+# - Charges inn fees (default 3.5 gp/week)
+# - Progresses training by 7 days
+# - Sends a weekly summary notification
+```
+
+For detailed documentation on the time tracking features, see [TIMEKEEPER_GUIDE.md](TIMEKEEPER_GUIDE.md).
 
 ## Security Notes
 

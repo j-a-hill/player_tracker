@@ -1,0 +1,28 @@
+# Timekeeper Configuration
+# Controls the relationship between real-world time and in-game time
+
+# Time ratio: How many in-game seconds pass per real-world second
+# 1.0 = 1:1 (real-time), 2.0 = 2x speed, 0.5 = half speed
+time_ratio: 1.0
+
+# Starting in-game date and time
+# Format: YYYY-MM-DD HH:MM:SS
+start_date: "1492-01-01 08:00:00"
+
+# Week definition (for weekly charges and notifications)
+# Number of in-game days in a week
+days_per_week: 7
+
+# When to send weekly notifications (in-game day of week, 0 = Sunday)
+notification_day: 0
+
+# Notification time (in-game time, 24-hour format)
+notification_time: "20:00"
+
+# Inn charges
+# Default weekly inn cost in copper (can be overridden per player)
+default_inn_cost_copper: 350  # 3.5 gold per week
+
+# Training
+# Default days required for training completion
+training_days_required: 250  # Standard D&D 5e downtime training time
