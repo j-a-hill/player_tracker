@@ -105,7 +105,7 @@ def test_bot_currency_choices():
     with open('bot.py', 'r') as f:
         code = f.read()
     
-    # Check that add_currency has only cp, sp, gp
+    # Check that currency commands have only cp, sp, gp
     assert 'app_commands.Choice(name="Copper (cp)", value="cp")' in code
     assert 'app_commands.Choice(name="Silver (sp)", value="sp")' in code
     assert 'app_commands.Choice(name="Gold (gp)", value="gp")' in code
