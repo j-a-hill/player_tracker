@@ -129,11 +129,14 @@ async def time_tracker():
         # Update game time
         new_game_time = game_time + timedelta(seconds=game_elapsed)
         
-        # Check if we crossed a week boundary
-        old_week = game_time.isocalendar()[1]
-        new_week = new_game_time.isocalendar()[1]
+        # Check if we crossed a week boundary (more robust method)
+        # Calculate total days from epoch for both times
+        old_total_days = (game_time - datetime(1970, 1, 1)).days
+        new_total_days = (new_game_time - datetime(1970, 1, 1)).days
+        old_weeks = old_total_days // 7
+        new_weeks = new_total_days // 7
         
-        if old_week != new_week or (new_game_time - game_time).days >= 7:
+        if new_weeks > old_weeks:
             # Week boundary crossed, trigger weekly events
             await trigger_weekly_events(new_game_time)
         

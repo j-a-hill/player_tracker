@@ -63,100 +63,61 @@ class PlayerStorage:
             self.training_sheet.append_row(['Player ID', 'Training Type', 'Skill/Language', 'Days Spent', 'Days Required', 'Status'])
         
         # Training options sheet
+        # Define default training options once
+        default_skills = [
+            ['Skill', 'Acrobatics', 'Dexterity-based physical agility'],
+            ['Skill', 'Animal Handling', 'Wisdom-based creature interaction'],
+            ['Skill', 'Arcana', 'Intelligence-based magical knowledge'],
+            ['Skill', 'Athletics', 'Strength-based physical prowess'],
+            ['Skill', 'Deception', 'Charisma-based lying and misdirection'],
+            ['Skill', 'History', 'Intelligence-based historical knowledge'],
+            ['Skill', 'Insight', 'Wisdom-based reading people'],
+            ['Skill', 'Intimidation', 'Charisma-based threats and fear'],
+            ['Skill', 'Investigation', 'Intelligence-based searching and deduction'],
+            ['Skill', 'Medicine', 'Wisdom-based healing knowledge'],
+            ['Skill', 'Nature', 'Intelligence-based natural world knowledge'],
+            ['Skill', 'Perception', 'Wisdom-based awareness'],
+            ['Skill', 'Performance', 'Charisma-based entertainment'],
+            ['Skill', 'Persuasion', 'Charisma-based convincing others'],
+            ['Skill', 'Religion', 'Intelligence-based religious knowledge'],
+            ['Skill', 'Sleight of Hand', 'Dexterity-based manual tricks'],
+            ['Skill', 'Stealth', 'Dexterity-based hiding and sneaking'],
+            ['Skill', 'Survival', 'Wisdom-based wilderness skills'],
+        ]
+        default_languages = [
+            ['Language', 'Common', 'Standard language'],
+            ['Language', 'Dwarvish', 'Language of dwarves'],
+            ['Language', 'Elvish', 'Language of elves'],
+            ['Language', 'Giant', 'Language of giants'],
+            ['Language', 'Gnomish', 'Language of gnomes'],
+            ['Language', 'Goblin', 'Language of goblinoids'],
+            ['Language', 'Halfling', 'Language of halflings'],
+            ['Language', 'Orc', 'Language of orcs'],
+            ['Language', 'Abyssal', 'Language of demons'],
+            ['Language', 'Celestial', 'Language of celestials'],
+            ['Language', 'Draconic', 'Language of dragons'],
+            ['Language', 'Deep Speech', 'Language of aberrations'],
+            ['Language', 'Infernal', 'Language of devils'],
+            ['Language', 'Primordial', 'Language of elementals'],
+            ['Language', 'Sylvan', 'Language of fey'],
+            ['Language', 'Undercommon', 'Language of the Underdark'],
+        ]
+        
         try:
             self.training_options_sheet = self.spreadsheet.worksheet('TrainingOptions')
             existing_data = self.training_options_sheet.get_all_values()
             if not existing_data or len(existing_data) == 0:
                 self.training_options_sheet.append_row(['Type', 'Name', 'Description'])
-                # Add default D&D 5e skills
-                skills = [
-                    ['Skill', 'Acrobatics', 'Dexterity-based physical agility'],
-                    ['Skill', 'Animal Handling', 'Wisdom-based creature interaction'],
-                    ['Skill', 'Arcana', 'Intelligence-based magical knowledge'],
-                    ['Skill', 'Athletics', 'Strength-based physical prowess'],
-                    ['Skill', 'Deception', 'Charisma-based lying and misdirection'],
-                    ['Skill', 'History', 'Intelligence-based historical knowledge'],
-                    ['Skill', 'Insight', 'Wisdom-based reading people'],
-                    ['Skill', 'Intimidation', 'Charisma-based threats and fear'],
-                    ['Skill', 'Investigation', 'Intelligence-based searching and deduction'],
-                    ['Skill', 'Medicine', 'Wisdom-based healing knowledge'],
-                    ['Skill', 'Nature', 'Intelligence-based natural world knowledge'],
-                    ['Skill', 'Perception', 'Wisdom-based awareness'],
-                    ['Skill', 'Performance', 'Charisma-based entertainment'],
-                    ['Skill', 'Persuasion', 'Charisma-based convincing others'],
-                    ['Skill', 'Religion', 'Intelligence-based religious knowledge'],
-                    ['Skill', 'Sleight of Hand', 'Dexterity-based manual tricks'],
-                    ['Skill', 'Stealth', 'Dexterity-based hiding and sneaking'],
-                    ['Skill', 'Survival', 'Wisdom-based wilderness skills'],
-                ]
-                for skill in skills:
+                for skill in default_skills:
                     self.training_options_sheet.append_row(skill)
-                # Add common D&D languages
-                languages = [
-                    ['Language', 'Common', 'Standard language'],
-                    ['Language', 'Dwarvish', 'Language of dwarves'],
-                    ['Language', 'Elvish', 'Language of elves'],
-                    ['Language', 'Giant', 'Language of giants'],
-                    ['Language', 'Gnomish', 'Language of gnomes'],
-                    ['Language', 'Goblin', 'Language of goblinoids'],
-                    ['Language', 'Halfling', 'Language of halflings'],
-                    ['Language', 'Orc', 'Language of orcs'],
-                    ['Language', 'Abyssal', 'Language of demons'],
-                    ['Language', 'Celestial', 'Language of celestials'],
-                    ['Language', 'Draconic', 'Language of dragons'],
-                    ['Language', 'Deep Speech', 'Language of aberrations'],
-                    ['Language', 'Infernal', 'Language of devils'],
-                    ['Language', 'Primordial', 'Language of elementals'],
-                    ['Language', 'Sylvan', 'Language of fey'],
-                    ['Language', 'Undercommon', 'Language of the Underdark'],
-                ]
-                for lang in languages:
+                for lang in default_languages:
                     self.training_options_sheet.append_row(lang)
         except gspread.exceptions.WorksheetNotFound:
             self.training_options_sheet = self.spreadsheet.add_worksheet('TrainingOptions', 100, 10)
             self.training_options_sheet.append_row(['Type', 'Name', 'Description'])
-            # Add defaults (same as above)
-            skills = [
-                ['Skill', 'Acrobatics', 'Dexterity-based physical agility'],
-                ['Skill', 'Animal Handling', 'Wisdom-based creature interaction'],
-                ['Skill', 'Arcana', 'Intelligence-based magical knowledge'],
-                ['Skill', 'Athletics', 'Strength-based physical prowess'],
-                ['Skill', 'Deception', 'Charisma-based lying and misdirection'],
-                ['Skill', 'History', 'Intelligence-based historical knowledge'],
-                ['Skill', 'Insight', 'Wisdom-based reading people'],
-                ['Skill', 'Intimidation', 'Charisma-based threats and fear'],
-                ['Skill', 'Investigation', 'Intelligence-based searching and deduction'],
-                ['Skill', 'Medicine', 'Wisdom-based healing knowledge'],
-                ['Skill', 'Nature', 'Intelligence-based natural world knowledge'],
-                ['Skill', 'Perception', 'Wisdom-based awareness'],
-                ['Skill', 'Performance', 'Charisma-based entertainment'],
-                ['Skill', 'Persuasion', 'Charisma-based convincing others'],
-                ['Skill', 'Religion', 'Intelligence-based religious knowledge'],
-                ['Skill', 'Sleight of Hand', 'Dexterity-based manual tricks'],
-                ['Skill', 'Stealth', 'Dexterity-based hiding and sneaking'],
-                ['Skill', 'Survival', 'Wisdom-based wilderness skills'],
-            ]
-            for skill in skills:
+            for skill in default_skills:
                 self.training_options_sheet.append_row(skill)
-            languages = [
-                ['Language', 'Common', 'Standard language'],
-                ['Language', 'Dwarvish', 'Language of dwarves'],
-                ['Language', 'Elvish', 'Language of elves'],
-                ['Language', 'Giant', 'Language of giants'],
-                ['Language', 'Gnomish', 'Language of gnomes'],
-                ['Language', 'Goblin', 'Language of goblinoids'],
-                ['Language', 'Halfling', 'Language of halflings'],
-                ['Language', 'Orc', 'Language of orcs'],
-                ['Language', 'Abyssal', 'Language of demons'],
-                ['Language', 'Celestial', 'Language of celestials'],
-                ['Language', 'Draconic', 'Language of dragons'],
-                ['Language', 'Deep Speech', 'Language of aberrations'],
-                ['Language', 'Infernal', 'Language of devils'],
-                ['Language', 'Primordial', 'Language of elementals'],
-                ['Language', 'Sylvan', 'Language of fey'],
-                ['Language', 'Undercommon', 'Language of the Underdark'],
-            ]
-            for lang in languages:
+            for lang in default_languages:
                 self.training_options_sheet.append_row(lang)
         
         # Timekeeper data sheet
