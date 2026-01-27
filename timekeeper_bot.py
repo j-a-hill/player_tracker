@@ -86,6 +86,8 @@ async def on_ready():
             storage.set_game_time(start_time)
             storage.set_last_real_time(format_game_time(datetime.now()))
             print(f'Initialized game time to: {start_time}')
+        else:
+            print(f'Game time already set to: {current_time}')
         
         # Start background task for time tracking
         time_tracker.start()

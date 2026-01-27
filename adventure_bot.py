@@ -255,6 +255,9 @@ class AdventureView(discord.ui.View):
             for item in self.children:
                 item.disabled = True
             
+            # Update the message to show disabled buttons
+            await interaction.response.edit_message(view=self)
+            
             next_node = choice.get('next')
             if next_node:
                 await show_adventure_node(
@@ -262,8 +265,7 @@ class AdventureView(discord.ui.View):
                     self.adventure_id,
                     next_node,
                     self.user_id,
-                    is_followup=True,
-                    disabled_view=self
+                    is_followup=True
                 )
             
         return callback
@@ -274,8 +276,7 @@ async def show_adventure_node(
     adventure_id: str,
     node_id: str,
     user_id: str,
-    is_followup: bool = False,
-    disabled_view: Optional[discord.ui.View] = None
+    is_followup: bool = False
 ):
     """Display an adventure node to the user."""
     adventure = adventures.get('adventures', {}).get(adventure_id, {})
@@ -365,12 +366,9 @@ async def show_adventure_node(
         
         embed.set_footer(text="Adventure Complete!")
         
-        # Send final message without buttons, but first update with disabled buttons if provided
+        # Send final message without buttons
         if is_followup:
-            # First update with disabled buttons from previous view
-            if disabled_view:
-                await interaction.edit_original_response(view=disabled_view)
-            # Then show the final message
+            # Update the message with the final content (no view/buttons)
             await interaction.edit_original_response(embed=embed, view=None)
         else:
             await interaction.response.send_message(embed=embed)
@@ -379,10 +377,7 @@ async def show_adventure_node(
         view = AdventureView(adventure_id, node_id, user_id)
         
         if is_followup:
-            # First update with disabled buttons from previous view
-            if disabled_view:
-                await interaction.edit_original_response(view=disabled_view)
-            # Then show the new choices
+            # Update the message with new choices
             await interaction.edit_original_response(embed=embed, view=view)
         else:
             await interaction.response.send_message(embed=embed, view=view)

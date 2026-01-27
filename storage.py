@@ -493,7 +493,9 @@ class PlayerStorage:
             records = self.timekeeper_sheet.get_all_records()
             for record in records:
                 if record.get('Key') == 'current_game_time':
-                    return record.get('Value', '')
+                    value = record.get('Value', '')
+                    # Return None if value is empty or whitespace
+                    return value if value and value.strip() else None
             return None
         except Exception as e:
             print(f"Error getting game time: {e}")
@@ -526,7 +528,9 @@ class PlayerStorage:
             records = self.timekeeper_sheet.get_all_records()
             for record in records:
                 if record.get('Key') == 'last_real_time':
-                    return record.get('Value', '')
+                    value = record.get('Value', '')
+                    # Return None if value is empty or whitespace
+                    return value if value and value.strip() else None
             return None
         except Exception as e:
             print(f"Error getting last real time: {e}")
