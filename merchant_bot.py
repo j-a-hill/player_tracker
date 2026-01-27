@@ -170,8 +170,10 @@ async def buy(interaction: discord.Interaction, item: str, quantity: int = 1):
     
     # Check if player has enough currency
     if player_copper < cost_in_copper:
+        needed = format_currency(cost_in_copper)
+        have = format_currency(player_copper)
         await interaction.response.send_message(
-            f"❌ You don't have enough currency! You need {total_cost} {currency_type} ({format_currency(cost_in_copper)}) but only have {format_currency(player_copper)}.",
+            f"❌ You don't have enough currency! You need {needed} but only have {have}.",
             ephemeral=True
         )
         return

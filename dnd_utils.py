@@ -159,7 +159,8 @@ def parse_currency_input(amount: int, currency_type: str) -> int:
         Total value in copper pieces
     """
     if currency_type not in CURRENCY_VALUES:
-        raise ValueError(f"Invalid currency type: {currency_type}")
+        valid_types = ', '.join(CURRENCY_VALUES.keys())
+        raise ValueError(f"Invalid currency type '{currency_type}'. Valid types are: {valid_types}")
     
     return amount * CURRENCY_VALUES[currency_type]
 

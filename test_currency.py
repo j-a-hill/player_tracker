@@ -55,11 +55,11 @@ def test_convert_to_copper_function():
     assert "def convert_to_copper(cp=0, sp=0, gp=0)" in code, \
         "convert_to_copper should only take cp, sp, gp parameters"
     
-    # Check that it doesn't use ep or pp
-    assert "ep=0" not in code or "def convert_to_copper(cp=0, sp=0, gp=0)" in code, \
-        "convert_to_copper shouldn't have ep parameter"
-    assert "pp=0" not in code or "def convert_to_copper(cp=0, sp=0, gp=0)" in code, \
-        "convert_to_copper shouldn't have pp parameter"
+    # Check that the function definition doesn't include ep or pp parameters
+    lines = code.split('\n')
+    convert_func_line = [line for line in lines if 'def convert_to_copper(' in line][0]
+    assert 'ep=' not in convert_func_line, "convert_to_copper shouldn't have ep parameter"
+    assert 'pp=' not in convert_func_line, "convert_to_copper shouldn't have pp parameter"
     
     print("✓ convert_to_copper has correct signature")
     return True
