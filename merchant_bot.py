@@ -190,7 +190,7 @@ async def buy(interaction: discord.Interaction, item: str, quantity: int = 1):
     for _ in range(quantity):
         inventory.append(shop_item['name'])
     
-    storage.update_player(player_id, inventory=inventory, **{field_name: new_currency})
+    storage.update_player(player_id, player, inventory=inventory, **{field_name: new_currency})
     
     # Update stock
     if shop_item['stock'] >= 0:
