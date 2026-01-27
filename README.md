@@ -1,6 +1,6 @@
 # Player Tracker - Discord D&D 5e Bot
 
-A comprehensive Discord bot system for tracking player inventory, XP, gold, and in-game time in tabletop RPG campaigns. Features four specialized bots working together: player tracker, merchant system, timekeeper, and inn management.
+A comprehensive Discord bot system for tracking player inventory, XP, gold, and in-game time in tabletop RPG campaigns. Features five specialized bots working together: player tracker, merchant system, timekeeper, inn management, and choose-your-own-adventure events.
 
 ## Features
 
@@ -25,16 +25,27 @@ A comprehensive Discord bot system for tracking player inventory, XP, gold, and 
 
 See [TIMEKEEPER_GUIDE.md](TIMEKEEPER_GUIDE.md) for detailed documentation on the new time tracking features.
 
+### Adventure System (NEW)
+- **Choose-Your-Own-Adventure Events**: Interactive story-based quicktime events for players
+- **Decision Trees**: Branching narratives with multiple outcomes
+- **Button-Based Choices**: Engaging Discord button interface for player decisions
+- **Rewards & Penalties**: Adventures can give or take gold, XP, and items
+- **Easy Configuration**: YAML-based adventure creation - no coding required!
+- **Perfect for Westmarches**: Solo adventures for players who aren't actively in sessions
+
+See [ADVENTURE_GUIDE.md](ADVENTURE_GUIDE.md) for detailed documentation on creating and managing adventures.
+
 ## Setup
 
 ### Prerequisites
 
 - Python 3.8 or higher
-- Four Discord Bot Tokens ([Create them here](https://discord.com/developers/applications))
+- Five Discord Bot Tokens ([Create them here](https://discord.com/developers/applications))
   - One for the main player tracker bot
   - One for the merchant bot
-  - One for the timekeeper bot (NEW)
-  - One for the inn bot (NEW)
+  - One for the timekeeper bot
+  - One for the inn bot
+  - One for the adventure bot (NEW)
 - A Google Cloud Project with Sheets API enabled ([Guide](https://developers.google.com/sheets/api/quickstart/python))
 - Google Service Account credentials JSON file
 
@@ -62,6 +73,7 @@ DISCORD_TOKEN=your_discord_bot_token_here
 MERCHANT_BOT_TOKEN=your_merchant_bot_token_here
 TIMEKEEPER_BOT_TOKEN=your_timekeeper_bot_token_here  # NEW
 INN_BOT_TOKEN=your_inn_bot_token_here  # NEW
+ADVENTURE_BOT_TOKEN=your_adventure_bot_token_here  # NEW
 GOOGLE_SHEET_ID=your_google_sheet_id_here
 GM_ROLE_ID=your_gm_role_id_here  # Optional
 NOTIFICATION_CHANNEL_ID=your_notification_channel_id_here  # Optional, for weekly notifications
@@ -92,7 +104,7 @@ The bots will automatically create the required worksheets:
 ### Discord Bot Setup
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create **four** applications (one for each bot: tracker, merchant, timekeeper, inn)
+2. Create **five** applications (one for each bot: tracker, merchant, timekeeper, inn, adventure)
 3. For each application, add a bot and enable these intents in the Bot section:
    - MESSAGE CONTENT INTENT
    - SERVER MEMBERS INTENT
@@ -106,7 +118,7 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=20
 
 ### Running the Bots Locally
 
-Run all four bots (each in a separate terminal):
+Run all five bots (each in a separate terminal):
 
 ```bash
 # Terminal 1 - Main Player Tracker
@@ -115,11 +127,14 @@ python bot.py
 # Terminal 2 - Merchant Bot
 python merchant_bot.py
 
-# Terminal 3 - Timekeeper Bot (NEW)
+# Terminal 3 - Timekeeper Bot
 python timekeeper_bot.py
 
-# Terminal 4 - Inn Bot (NEW)
+# Terminal 4 - Inn Bot
 python inn_bot.py
+
+# Terminal 5 - Adventure Bot (NEW)
+python adventure_bot.py
 ```
 
 All bots will connect to Discord and sync their slash commands.
@@ -192,6 +207,13 @@ sudo systemctl stop inn_bot
 sudo systemctl restart inn_bot
 sudo systemctl status inn_bot
 sudo journalctl -u inn_bot -f
+
+# Adventure Bot (NEW)
+sudo systemctl start adventure_bot
+sudo systemctl stop adventure_bot
+sudo systemctl restart adventure_bot
+sudo systemctl status adventure_bot
+sudo journalctl -u adventure_bot -f
 ```
 
 #### Auto-start on Boot
@@ -202,6 +224,7 @@ sudo systemctl enable player_tracker
 sudo systemctl enable merchant_bot
 sudo systemctl enable timekeeper_bot
 sudo systemctl enable inn_bot
+sudo systemctl enable adventure_bot
 ```
 
 #### Updating the Bot
@@ -236,6 +259,11 @@ pip install -r requirements.txt
 **Inn Bot (NEW):**
 - `/inn_status` - View your weekly inn cost and current balance
 - `/help` - Show inn commands
+
+**Adventure Bot (NEW):**
+- `/adventure <name>` - Start a choose-your-own-adventure event
+- `/adventure_list` - View all available adventures
+- `/help` - Show adventure commands
 
 ### GM Commands
 
@@ -272,6 +300,11 @@ pip install -r requirements.txt
 - `/inn_list` - View all players' inn configurations
 - `/charge_inn` - Manually trigger weekly charges (for testing)
 
+**Adventure Bot (NEW)** - These commands require the GM role (or administrator permissions):
+
+- `/start_adventure <player> <name>` - Start an adventure for a specific player
+- `/reload_adventures` - Reload adventures from the adventures.yaml file
+
 ### Editing Shop Items
 
 You can edit shop items directly in the Google Sheet:
@@ -297,11 +330,13 @@ Using the merchant bot's GM commands, you can create custom shops for different 
 
 - **bot.py**: Main Discord bot for player tracking (XP, gold, inventory, training)
 - **merchant_bot.py**: Separate Discord bot for merchant/shop system
-- **timekeeper_bot.py**: Separate Discord bot for in-game time tracking (NEW)
-- **inn_bot.py**: Separate Discord bot for inn management (NEW)
+- **timekeeper_bot.py**: Separate Discord bot for in-game time tracking
+- **inn_bot.py**: Separate Discord bot for inn management
+- **adventure_bot.py**: Separate Discord bot for choose-your-own-adventure events (NEW)
 - **storage.py**: Google Sheets integration for data persistence
 - **dnd_utils.py**: D&D 5e game mechanics (XP thresholds, currency conversion, level calculations)
-- **timekeeper_config.yaml**: Configuration for time tracking and weekly events (NEW)
+- **timekeeper_config.yaml**: Configuration for time tracking and weekly events
+- **adventures.yaml**: Configuration for adventure scenarios and decision trees (NEW)
 - **requirements.txt**: Python dependencies
 - **.env**: Configuration file (not committed to git)
 - **credentials.json**: Google service account credentials (not committed to git)

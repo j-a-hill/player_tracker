@@ -1,0 +1,180 @@
+adventures:
+  mysterious_stranger:
+    name: The Mysterious Stranger
+    description: A cloaked figure approaches you in the tavern
+    start_node: intro
+    nodes:
+      intro:
+        text: A mysterious cloaked figure approaches you in the dimly lit tavern. They slide a sealed letter across the table without a word. What do you do?
+        choices:
+          - label: Open the letter
+            emoji: 📜
+            next: open_letter
+          - label: Question the stranger
+            emoji: ❓
+            next: question_stranger
+          - label: Ignore them
+            emoji: 🚫
+            next: ignore
+      open_letter:
+        text: The letter reveals a treasure map with cryptic symbols. The stranger whispers "Follow it if you dare" before vanishing. You gain a Treasure Map!
+        rewards:
+          items:
+            - Treasure Map
+        is_end: true
+      question_stranger:
+        text: The stranger smiles and says "Your curiosity is admirable." They toss you a pouch of gold coins. "Perhaps we'll meet again." You gain 50 gold!
+        rewards:
+          gold: 50
+        is_end: true
+      ignore:
+        text: The stranger sighs, disappointed. "Very well." They take back the letter and leave. You missed an opportunity.
+        is_end: true
+
+  goblin_ambush:
+    name: Goblin Ambush
+    description: Goblins attack on the road!
+    start_node: ambush
+    nodes:
+      ambush:
+        text: While traveling down a forest road, three goblins leap from the bushes! They demand your gold. What do you do?
+        choices:
+          - label: Fight them
+            emoji: ⚔️
+            next: fight
+          - label: Pay them off (10 gp)
+            emoji: 💰
+            next: pay
+            requirement:
+              gold: 10
+          - label: Try to negotiate
+            emoji: 🤝
+            next: negotiate
+      fight:
+        text: You draw your weapon and fight! After a fierce battle, you defeat the goblins and search their belongings. You gain 25 gold and 100 XP!
+        rewards:
+          gold: 25
+          xp: 100
+        is_end: true
+      pay:
+        text: You hand over 10 gold pieces. The goblins laugh and run off. At least you're safe.
+        penalties:
+          gold: 10
+        is_end: true
+      negotiate:
+        text: You attempt to reason with the goblins, but they're not interested in talk. They attack! In the chaos, you manage to escape but lose 5 gold that fell from your pouch.
+        penalties:
+          gold: 5
+        is_end: true
+
+  lost_child:
+    name: The Lost Child
+    description: A child needs your help in the woods
+    start_node: encounter
+    nodes:
+      encounter:
+        text: You hear sobbing in the forest. A young child sits alone, crying. "I'm lost and scared! Can you help me find my way home?"
+        choices:
+          - label: Help them find home
+            emoji: 🏡
+            next: help_home
+          - label: Give them food and directions
+            emoji: 🍞
+            next: give_food
+            requirement:
+              items:
+                - Rations
+          - label: Keep walking
+            emoji: 👣
+            next: walk_away
+      help_home:
+        text: You spend several hours helping the child navigate back to their village. The grateful parents reward you with a family heirloom sword and 30 gold pieces!
+        rewards:
+          gold: 30
+          items:
+            - Family Heirloom Sword
+          xp: 50
+        is_end: true
+      give_food:
+        text: You give the child some rations and point them in the right direction. They thank you and run off. You feel good about helping, but wonder if they made it safely. You gain 25 XP for your kindness.
+        rewards:
+          xp: 25
+        penalties:
+          items:
+            - Rations
+        is_end: true
+      walk_away:
+        text: You ignore the child's pleas and continue walking. As you leave, you hear their cries fade into the distance. You feel guilty about your decision.
+        is_end: true
+
+  merchant_deal:
+    name: The Suspicious Deal
+    description: A merchant offers you an unusual bargain
+    start_node: offer
+    nodes:
+      offer:
+        text: A shifty merchant approaches you with a sly grin. "I have a special offer, just for you! This magic ring for only 40 gold pieces. Worth far more, I assure you!"
+        choices:
+          - label: Buy the ring (40 gp)
+            emoji: 💍
+            next: buy_ring
+            requirement:
+              gold: 40
+          - label: Examine it first
+            emoji: 🔍
+            next: examine
+          - label: Refuse the offer
+            emoji: ❌
+            next: refuse
+      buy_ring:
+        text: You hand over the gold and take the ring. Later, you discover it's actually magical! The Ring of Minor Protection grants you a small defensive bonus. You gain a magic item!
+        rewards:
+          items:
+            - Ring of Minor Protection
+        penalties:
+          gold: 40
+        is_end: true
+      examine:
+        text: You inspect the ring carefully and realize it's a fake! You confront the merchant, who nervously offers you 10 gold to keep quiet about his scam. You take the gold and he scurries away.
+        rewards:
+          gold: 10
+          xp: 25
+        is_end: true
+      refuse:
+        text: '"No thanks," you say firmly. The merchant shrugs and moves on to his next mark. You avoided a potential scam, but you''ll never know if the ring was real.'
+        is_end: true
+
+  dragon_egg:
+    name: The Dragon Egg
+    description: You discover a mysterious egg
+    start_node: discovery
+    nodes:
+      discovery:
+        text: While exploring a cave, you stumble upon a large, warm egg covered in scales. It's clearly a dragon egg! What do you do?
+        choices:
+          - label: Take it with you
+            emoji: 🥚
+            next: take_egg
+          - label: Leave it and go
+            emoji: 🚶
+            next: leave_it
+          - label: Destroy it
+            emoji: 💥
+            next: destroy_it
+      take_egg:
+        text: You carefully wrap the egg and take it with you. It might hatch someday! You've gained a Dragon Egg, but be warned - the mother might come looking for it...
+        rewards:
+          items:
+            - Dragon Egg
+          xp: 75
+        is_end: true
+      leave_it:
+        text: You decide not to interfere with nature and leave the egg where it is. As you exit the cave, you see a massive shadow fly overhead. Good choice! You gain 100 XP for your wisdom.
+        rewards:
+          xp: 100
+        is_end: true
+      destroy_it:
+        text: You smash the egg, believing it's better to eliminate a future threat. However, you feel a wave of dread wash over you. Somewhere, a dragon mother roars in fury. You've made a powerful enemy, but you gain 50 XP.
+        rewards:
+          xp: 50
+        is_end: true
