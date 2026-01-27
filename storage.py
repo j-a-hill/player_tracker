@@ -44,13 +44,13 @@ class PlayerStorage:
             # Check if headers exist, if not add them
             existing_data = self.players_sheet.get_all_values()
             if not existing_data or len(existing_data) == 0:
-                self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory'])
-            elif existing_data[0] != ['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory']:
+                self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Inventory'])
+            elif existing_data[0] != ['Player ID', 'Name', 'XP', 'Copper', 'Inventory']:
                 # Headers exist but are incorrect, insert them at the top
-                self.players_sheet.insert_row(['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory'], 1)
+                self.players_sheet.insert_row(['Player ID', 'Name', 'XP', 'Copper', 'Inventory'], 1)
         except gspread.exceptions.WorksheetNotFound:
             self.players_sheet = self.spreadsheet.add_worksheet('Players', 100, 10)
-            self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Silver', 'Electrum', 'Gold', 'Platinum', 'Inventory'])
+            self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Inventory'])
         
         try:
             self.shop_sheet = self.spreadsheet.worksheet('Shop')
@@ -96,41 +96,17 @@ class PlayerStorage:
                     except (ValueError, TypeError):
                         xp = 0
                     
-                    # Get individual currency values
+                    # Get copper value (single currency field)
                     try:
                         copper = int(record.get('Copper', 0))
                     except (ValueError, TypeError):
                         copper = 0
-                    
-                    try:
-                        silver = int(record.get('Silver', 0))
-                    except (ValueError, TypeError):
-                        silver = 0
-                    
-                    try:
-                        electrum = int(record.get('Electrum', 0))
-                    except (ValueError, TypeError):
-                        electrum = 0
-                    
-                    try:
-                        gold = int(record.get('Gold', 0))
-                    except (ValueError, TypeError):
-                        gold = 0
-                    
-                    try:
-                        platinum = int(record.get('Platinum', 0))
-                    except (ValueError, TypeError):
-                        platinum = 0
                     
                     return {
                         'player_id': str(record.get('Player ID')),
                         'name': record.get('Name', ''),
                         'xp': xp,
                         'copper': copper,
-                        'silver': silver,
-                        'electrum': electrum,
-                        'gold': gold,
-                        'platinum': platinum,
                         'inventory': inventory,
                         'row': idx
                     }
@@ -147,16 +123,12 @@ class PlayerStorage:
                 'name': name,
                 'xp': 0,
                 'copper': 0,
-                'silver': 0,
-                'electrum': 0,
-                'gold': 0,
-                'platinum': 0,
                 'inventory': []
             }
             
         try:
             # Append the new player row - this is an atomic operation
-            self.players_sheet.append_row([str(player_id), name, 0, 0, 0, 0, 0, 0, '[]'])
+            self.players_sheet.append_row([str(player_id), name, 0, 0, '[]'])
             
             # Get the actual row number by counting existing rows after append
             # This is more reliable than using row_count which includes empty rows
@@ -172,10 +144,6 @@ class PlayerStorage:
                 'name': name,
                 'xp': 0,
                 'copper': 0,
-                'silver': 0,
-                'electrum': 0,
-                'gold': 0,
-                'platinum': 0,
                 'inventory': [],
                 'row': next_row  # Include row number for immediate updates
             }
@@ -186,10 +154,6 @@ class PlayerStorage:
                 'name': name,
                 'xp': 0,
                 'copper': 0,
-                'silver': 0,
-                'electrum': 0,
-                'gold': 0,
-                'platinum': 0,
                 'inventory': []
             }
     
@@ -200,7 +164,7 @@ class PlayerStorage:
         Args:
             player_id: Discord ID of the player
             player_data: Optional cached player data (from recent get_player or create_player)
-            **kwargs: Fields to update (xp, copper, silver, electrum, gold, platinum, inventory)
+            **kwargs: Fields to update (xp, copper, inventory)
         """
         if not self.players_sheet:
             return
@@ -224,17 +188,9 @@ class PlayerStorage:
                 updates.append({'range': f'C{row}', 'values': [[kwargs['xp']]]})
             if 'copper' in kwargs:
                 updates.append({'range': f'D{row}', 'values': [[kwargs['copper']]]})
-            if 'silver' in kwargs:
-                updates.append({'range': f'E{row}', 'values': [[kwargs['silver']]]})
-            if 'electrum' in kwargs:
-                updates.append({'range': f'F{row}', 'values': [[kwargs['electrum']]]})
-            if 'gold' in kwargs:
-                updates.append({'range': f'G{row}', 'values': [[kwargs['gold']]]})
-            if 'platinum' in kwargs:
-                updates.append({'range': f'H{row}', 'values': [[kwargs['platinum']]]})
             if 'inventory' in kwargs:
                 inventory_json = json.dumps(kwargs['inventory'])
-                updates.append({'range': f'I{row}', 'values': [[inventory_json]]})
+                updates.append({'range': f'E{row}', 'values': [[inventory_json]]})
             
             # Perform batch update if there are any updates
             if updates:
@@ -263,7 +219,7 @@ class PlayerStorage:
                 
                 # Get currency type (default to 'gp' for backwards compatibility)
                 currency = str(record.get('Currency') or 'gp').strip().lower()
-                if currency not in ['cp', 'sp', 'ep', 'gp', 'pp']:
+                if currency not in ['cp', 'sp', 'gp']:
                     currency = 'gp'
                 
                 try:
