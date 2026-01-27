@@ -175,7 +175,7 @@ def test_dnd_utils():
             return False
         
         # Test currency formatting
-        currency_str = format_currency(gp=10, sp=5)
+        currency_str = format_currency(1050)  # 10 gp, 5 sp in copper
         if "10 gp" in currency_str and "5 sp" in currency_str:
             print("✓ Currency formatting works")
         else:
