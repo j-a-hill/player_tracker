@@ -111,11 +111,11 @@ echo "Configuring systemd services..."
 CURRENT_USER=$(whoami)
 CURRENT_DIR="$SCRIPT_DIR"
 
-sed -e "s|YOUR_USERNAME|$CURRENT_USER|g" -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" player_tracker.service > player_tracker.service.tmp
-sed -e "s|YOUR_USERNAME|$CURRENT_USER|g" -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" merchant_bot.service > merchant_bot.service.tmp
-sed -e "s|YOUR_USERNAME|$CURRENT_USER|g" -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" timekeeper_bot.service > timekeeper_bot.service.tmp
-sed -e "s|YOUR_USERNAME|$CURRENT_USER|g" -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" inn_bot.service > inn_bot.service.tmp
-sed -e "s|YOUR_USERNAME|$CURRENT_USER|g" -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" adventure_bot.service > adventure_bot.service.tmp
+sed -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" -e "s|YOUR_USERNAME|$CURRENT_USER|g" player_tracker.service > player_tracker.service.tmp
+sed -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" -e "s|YOUR_USERNAME|$CURRENT_USER|g" merchant_bot.service > merchant_bot.service.tmp
+sed -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" -e "s|YOUR_USERNAME|$CURRENT_USER|g" timekeeper_bot.service > timekeeper_bot.service.tmp
+sed -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" -e "s|YOUR_USERNAME|$CURRENT_USER|g" inn_bot.service > inn_bot.service.tmp
+sed -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" -e "s|YOUR_USERNAME|$CURRENT_USER|g" adventure_bot.service > adventure_bot.service.tmp
 
 # Install systemd services
 echo ""
