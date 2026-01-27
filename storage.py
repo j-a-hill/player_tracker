@@ -52,6 +52,137 @@ class PlayerStorage:
             self.players_sheet = self.spreadsheet.add_worksheet('Players', 100, 10)
             self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Inventory'])
         
+        # Training sheet for skills and languages
+        try:
+            self.training_sheet = self.spreadsheet.worksheet('Training')
+            existing_data = self.training_sheet.get_all_values()
+            if not existing_data or len(existing_data) == 0:
+                self.training_sheet.append_row(['Player ID', 'Training Type', 'Skill/Language', 'Days Spent', 'Days Required', 'Status'])
+        except gspread.exceptions.WorksheetNotFound:
+            self.training_sheet = self.spreadsheet.add_worksheet('Training', 100, 10)
+            self.training_sheet.append_row(['Player ID', 'Training Type', 'Skill/Language', 'Days Spent', 'Days Required', 'Status'])
+        
+        # Training options sheet
+        try:
+            self.training_options_sheet = self.spreadsheet.worksheet('TrainingOptions')
+            existing_data = self.training_options_sheet.get_all_values()
+            if not existing_data or len(existing_data) == 0:
+                self.training_options_sheet.append_row(['Type', 'Name', 'Description'])
+                # Add default D&D 5e skills
+                skills = [
+                    ['Skill', 'Acrobatics', 'Dexterity-based physical agility'],
+                    ['Skill', 'Animal Handling', 'Wisdom-based creature interaction'],
+                    ['Skill', 'Arcana', 'Intelligence-based magical knowledge'],
+                    ['Skill', 'Athletics', 'Strength-based physical prowess'],
+                    ['Skill', 'Deception', 'Charisma-based lying and misdirection'],
+                    ['Skill', 'History', 'Intelligence-based historical knowledge'],
+                    ['Skill', 'Insight', 'Wisdom-based reading people'],
+                    ['Skill', 'Intimidation', 'Charisma-based threats and fear'],
+                    ['Skill', 'Investigation', 'Intelligence-based searching and deduction'],
+                    ['Skill', 'Medicine', 'Wisdom-based healing knowledge'],
+                    ['Skill', 'Nature', 'Intelligence-based natural world knowledge'],
+                    ['Skill', 'Perception', 'Wisdom-based awareness'],
+                    ['Skill', 'Performance', 'Charisma-based entertainment'],
+                    ['Skill', 'Persuasion', 'Charisma-based convincing others'],
+                    ['Skill', 'Religion', 'Intelligence-based religious knowledge'],
+                    ['Skill', 'Sleight of Hand', 'Dexterity-based manual tricks'],
+                    ['Skill', 'Stealth', 'Dexterity-based hiding and sneaking'],
+                    ['Skill', 'Survival', 'Wisdom-based wilderness skills'],
+                ]
+                for skill in skills:
+                    self.training_options_sheet.append_row(skill)
+                # Add common D&D languages
+                languages = [
+                    ['Language', 'Common', 'Standard language'],
+                    ['Language', 'Dwarvish', 'Language of dwarves'],
+                    ['Language', 'Elvish', 'Language of elves'],
+                    ['Language', 'Giant', 'Language of giants'],
+                    ['Language', 'Gnomish', 'Language of gnomes'],
+                    ['Language', 'Goblin', 'Language of goblinoids'],
+                    ['Language', 'Halfling', 'Language of halflings'],
+                    ['Language', 'Orc', 'Language of orcs'],
+                    ['Language', 'Abyssal', 'Language of demons'],
+                    ['Language', 'Celestial', 'Language of celestials'],
+                    ['Language', 'Draconic', 'Language of dragons'],
+                    ['Language', 'Deep Speech', 'Language of aberrations'],
+                    ['Language', 'Infernal', 'Language of devils'],
+                    ['Language', 'Primordial', 'Language of elementals'],
+                    ['Language', 'Sylvan', 'Language of fey'],
+                    ['Language', 'Undercommon', 'Language of the Underdark'],
+                ]
+                for lang in languages:
+                    self.training_options_sheet.append_row(lang)
+        except gspread.exceptions.WorksheetNotFound:
+            self.training_options_sheet = self.spreadsheet.add_worksheet('TrainingOptions', 100, 10)
+            self.training_options_sheet.append_row(['Type', 'Name', 'Description'])
+            # Add defaults (same as above)
+            skills = [
+                ['Skill', 'Acrobatics', 'Dexterity-based physical agility'],
+                ['Skill', 'Animal Handling', 'Wisdom-based creature interaction'],
+                ['Skill', 'Arcana', 'Intelligence-based magical knowledge'],
+                ['Skill', 'Athletics', 'Strength-based physical prowess'],
+                ['Skill', 'Deception', 'Charisma-based lying and misdirection'],
+                ['Skill', 'History', 'Intelligence-based historical knowledge'],
+                ['Skill', 'Insight', 'Wisdom-based reading people'],
+                ['Skill', 'Intimidation', 'Charisma-based threats and fear'],
+                ['Skill', 'Investigation', 'Intelligence-based searching and deduction'],
+                ['Skill', 'Medicine', 'Wisdom-based healing knowledge'],
+                ['Skill', 'Nature', 'Intelligence-based natural world knowledge'],
+                ['Skill', 'Perception', 'Wisdom-based awareness'],
+                ['Skill', 'Performance', 'Charisma-based entertainment'],
+                ['Skill', 'Persuasion', 'Charisma-based convincing others'],
+                ['Skill', 'Religion', 'Intelligence-based religious knowledge'],
+                ['Skill', 'Sleight of Hand', 'Dexterity-based manual tricks'],
+                ['Skill', 'Stealth', 'Dexterity-based hiding and sneaking'],
+                ['Skill', 'Survival', 'Wisdom-based wilderness skills'],
+            ]
+            for skill in skills:
+                self.training_options_sheet.append_row(skill)
+            languages = [
+                ['Language', 'Common', 'Standard language'],
+                ['Language', 'Dwarvish', 'Language of dwarves'],
+                ['Language', 'Elvish', 'Language of elves'],
+                ['Language', 'Giant', 'Language of giants'],
+                ['Language', 'Gnomish', 'Language of gnomes'],
+                ['Language', 'Goblin', 'Language of goblinoids'],
+                ['Language', 'Halfling', 'Language of halflings'],
+                ['Language', 'Orc', 'Language of orcs'],
+                ['Language', 'Abyssal', 'Language of demons'],
+                ['Language', 'Celestial', 'Language of celestials'],
+                ['Language', 'Draconic', 'Language of dragons'],
+                ['Language', 'Deep Speech', 'Language of aberrations'],
+                ['Language', 'Infernal', 'Language of devils'],
+                ['Language', 'Primordial', 'Language of elementals'],
+                ['Language', 'Sylvan', 'Language of fey'],
+                ['Language', 'Undercommon', 'Language of the Underdark'],
+            ]
+            for lang in languages:
+                self.training_options_sheet.append_row(lang)
+        
+        # Timekeeper data sheet
+        try:
+            self.timekeeper_sheet = self.spreadsheet.worksheet('Timekeeper')
+            existing_data = self.timekeeper_sheet.get_all_values()
+            if not existing_data or len(existing_data) == 0:
+                self.timekeeper_sheet.append_row(['Key', 'Value'])
+                self.timekeeper_sheet.append_row(['current_game_time', ''])
+                self.timekeeper_sheet.append_row(['last_real_time', ''])
+        except gspread.exceptions.WorksheetNotFound:
+            self.timekeeper_sheet = self.spreadsheet.add_worksheet('Timekeeper', 100, 10)
+            self.timekeeper_sheet.append_row(['Key', 'Value'])
+            self.timekeeper_sheet.append_row(['current_game_time', ''])
+            self.timekeeper_sheet.append_row(['last_real_time', ''])
+        
+        # Inn configuration sheet
+        try:
+            self.inn_sheet = self.spreadsheet.worksheet('Inn')
+            existing_data = self.inn_sheet.get_all_values()
+            if not existing_data or len(existing_data) == 0:
+                self.inn_sheet.append_row(['Player ID', 'Exempt', 'Custom Cost'])
+        except gspread.exceptions.WorksheetNotFound:
+            self.inn_sheet = self.spreadsheet.add_worksheet('Inn', 100, 10)
+            self.inn_sheet.append_row(['Player ID', 'Exempt', 'Custom Cost'])
+        
         try:
             self.shop_sheet = self.spreadsheet.worksheet('Shop')
             # Check if headers exist, if not add them
@@ -298,3 +429,264 @@ class PlayerStorage:
         except Exception as e:
             print(f"Error clearing shop: {e}")
             return False
+    
+    # Training methods
+    def get_training_options(self, training_type: Optional[str] = None) -> List[Dict]:
+        """Get available training options (skills or languages)."""
+        if not hasattr(self, 'training_options_sheet') or not self.training_options_sheet:
+            return []
+        
+        try:
+            records = self.training_options_sheet.get_all_records()
+            options = []
+            for record in records:
+                option_type = record.get('Type', '').strip()
+                if training_type and option_type.lower() != training_type.lower():
+                    continue
+                options.append({
+                    'type': option_type,
+                    'name': record.get('Name', '').strip(),
+                    'description': record.get('Description', '').strip()
+                })
+            return options
+        except Exception as e:
+            print(f"Error getting training options: {e}")
+            return []
+    
+    def get_player_training(self, player_id: str) -> List[Dict]:
+        """Get player's current training progress."""
+        if not hasattr(self, 'training_sheet') or not self.training_sheet:
+            return []
+        
+        try:
+            records = self.training_sheet.get_all_records()
+            training = []
+            for idx, record in enumerate(records, start=2):
+                if str(record.get('Player ID')) == str(player_id):
+                    training.append({
+                        'training_type': record.get('Training Type', ''),
+                        'skill_or_language': record.get('Skill/Language', ''),
+                        'days_spent': int(record.get('Days Spent', 0)),
+                        'days_required': int(record.get('Days Required', 250)),
+                        'status': record.get('Status', 'In Progress'),
+                        'row': idx
+                    })
+            return training
+        except Exception as e:
+            print(f"Error getting player training: {e}")
+            return []
+    
+    def start_training(self, player_id: str, training_type: str, skill_or_language: str, days_required: int = 250):
+        """Start training for a player."""
+        if not hasattr(self, 'training_sheet') or not self.training_sheet:
+            return False
+        
+        try:
+            self.training_sheet.append_row([
+                str(player_id),
+                training_type,
+                skill_or_language,
+                0,  # days_spent
+                days_required,
+                'In Progress'
+            ])
+            return True
+        except Exception as e:
+            print(f"Error starting training: {e}")
+            return False
+    
+    def update_training_progress(self, player_id: str, skill_or_language: str, days_to_add: int):
+        """Update training progress for a player."""
+        if not hasattr(self, 'training_sheet') or not self.training_sheet:
+            return False
+        
+        try:
+            training_list = self.get_player_training(player_id)
+            for training in training_list:
+                if training['skill_or_language'].lower() == skill_or_language.lower():
+                    new_days = training['days_spent'] + days_to_add
+                    row = training['row']
+                    
+                    # Check if training is complete
+                    if new_days >= training['days_required']:
+                        new_days = training['days_required']
+                        status = 'Complete'
+                    else:
+                        status = 'In Progress'
+                    
+                    self.training_sheet.update_cell(row, 4, new_days)  # Days Spent
+                    self.training_sheet.update_cell(row, 6, status)  # Status
+                    return True
+            return False
+        except Exception as e:
+            print(f"Error updating training progress: {e}")
+            return False
+    
+    # Timekeeper methods
+    def get_game_time(self) -> Optional[str]:
+        """Get current in-game time."""
+        if not hasattr(self, 'timekeeper_sheet') or not self.timekeeper_sheet:
+            return None
+        
+        try:
+            records = self.timekeeper_sheet.get_all_records()
+            for record in records:
+                if record.get('Key') == 'current_game_time':
+                    return record.get('Value', '')
+            return None
+        except Exception as e:
+            print(f"Error getting game time: {e}")
+            return None
+    
+    def set_game_time(self, game_time: str):
+        """Set current in-game time."""
+        if not hasattr(self, 'timekeeper_sheet') or not self.timekeeper_sheet:
+            return False
+        
+        try:
+            records = self.timekeeper_sheet.get_all_records()
+            for idx, record in enumerate(records, start=2):
+                if record.get('Key') == 'current_game_time':
+                    self.timekeeper_sheet.update_cell(idx, 2, game_time)
+                    return True
+            # If not found, add it
+            self.timekeeper_sheet.append_row(['current_game_time', game_time])
+            return True
+        except Exception as e:
+            print(f"Error setting game time: {e}")
+            return False
+    
+    def get_last_real_time(self) -> Optional[str]:
+        """Get last recorded real time."""
+        if not hasattr(self, 'timekeeper_sheet') or not self.timekeeper_sheet:
+            return None
+        
+        try:
+            records = self.timekeeper_sheet.get_all_records()
+            for record in records:
+                if record.get('Key') == 'last_real_time':
+                    return record.get('Value', '')
+            return None
+        except Exception as e:
+            print(f"Error getting last real time: {e}")
+            return None
+    
+    def set_last_real_time(self, real_time: str):
+        """Set last recorded real time."""
+        if not hasattr(self, 'timekeeper_sheet') or not self.timekeeper_sheet:
+            return False
+        
+        try:
+            records = self.timekeeper_sheet.get_all_records()
+            for idx, record in enumerate(records, start=2):
+                if record.get('Key') == 'last_real_time':
+                    self.timekeeper_sheet.update_cell(idx, 2, real_time)
+                    return True
+            # If not found, add it
+            self.timekeeper_sheet.append_row(['last_real_time', real_time])
+            return True
+        except Exception as e:
+            print(f"Error setting last real time: {e}")
+            return False
+    
+    # Inn methods
+    def get_inn_config(self, player_id: str) -> Dict:
+        """Get inn configuration for a player."""
+        if not hasattr(self, 'inn_sheet') or not self.inn_sheet:
+            return {'exempt': False, 'custom_cost': None}
+        
+        try:
+            records = self.inn_sheet.get_all_records()
+            for idx, record in enumerate(records, start=2):
+                if str(record.get('Player ID')) == str(player_id):
+                    exempt = str(record.get('Exempt', 'FALSE')).upper() == 'TRUE'
+                    custom_cost = record.get('Custom Cost', '')
+                    try:
+                        custom_cost = int(custom_cost) if custom_cost else None
+                    except (ValueError, TypeError):
+                        custom_cost = None
+                    return {
+                        'exempt': exempt,
+                        'custom_cost': custom_cost,
+                        'row': idx
+                    }
+            return {'exempt': False, 'custom_cost': None}
+        except Exception as e:
+            print(f"Error getting inn config: {e}")
+            return {'exempt': False, 'custom_cost': None}
+    
+    def set_inn_exempt(self, player_id: str, exempt: bool):
+        """Set inn exemption for a player."""
+        if not hasattr(self, 'inn_sheet') or not self.inn_sheet:
+            return False
+        
+        try:
+            config = self.get_inn_config(player_id)
+            if 'row' in config:
+                # Update existing
+                self.inn_sheet.update_cell(config['row'], 2, 'TRUE' if exempt else 'FALSE')
+            else:
+                # Create new
+                self.inn_sheet.append_row([str(player_id), 'TRUE' if exempt else 'FALSE', ''])
+            return True
+        except Exception as e:
+            print(f"Error setting inn exempt: {e}")
+            return False
+    
+    def set_inn_custom_cost(self, player_id: str, cost: Optional[int]):
+        """Set custom inn cost for a player."""
+        if not hasattr(self, 'inn_sheet') or not self.inn_sheet:
+            return False
+        
+        try:
+            config = self.get_inn_config(player_id)
+            cost_value = str(cost) if cost is not None else ''
+            if 'row' in config:
+                # Update existing
+                self.inn_sheet.update_cell(config['row'], 3, cost_value)
+            else:
+                # Create new
+                self.inn_sheet.append_row([str(player_id), 'FALSE', cost_value])
+            return True
+        except Exception as e:
+            print(f"Error setting inn custom cost: {e}")
+            return False
+    
+    def get_all_players(self) -> List[Dict]:
+        """Get all players."""
+        if not self.players_sheet:
+            return []
+        
+        try:
+            records = self.players_sheet.get_all_records()
+            players = []
+            for idx, record in enumerate(records, start=2):
+                inventory = record.get('Inventory', '[]')
+                if isinstance(inventory, str):
+                    try:
+                        inventory = json.loads(inventory) if inventory else []
+                    except json.JSONDecodeError:
+                        inventory = []
+                
+                try:
+                    xp = int(record.get('XP', 0))
+                except (ValueError, TypeError):
+                    xp = 0
+                
+                try:
+                    copper = int(record.get('Copper', 0))
+                except (ValueError, TypeError):
+                    copper = 0
+                
+                players.append({
+                    'player_id': str(record.get('Player ID')),
+                    'name': record.get('Name', ''),
+                    'xp': xp,
+                    'copper': copper,
+                    'inventory': inventory,
+                    'row': idx
+                })
+            return players
+        except Exception as e:
+            print(f"Error getting all players: {e}")
+            return []
