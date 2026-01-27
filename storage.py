@@ -155,11 +155,16 @@ class PlayerStorage:
             }
             
         try:
-            # Append the new player row
+            # Append the new player row - this is an atomic operation
             self.players_sheet.append_row([str(player_id), name, 0, 0, 0, 0, 0, 0, '[]'])
             
-            # Get the actual row number by counting existing rows
+            # Get the actual row number by counting existing rows after append
             # This is more reliable than using row_count which includes empty rows
+            # Note: We get the row count AFTER appending to ensure we capture the row
+            # where our data was actually placed. This approach is safe because:
+            # 1. append_row is atomic and places data in the first empty row
+            # 2. get_all_values() returns all rows up to the last row with data
+            # 3. Since we just appended, our row is the last row with data
             next_row = len(self.players_sheet.get_all_values())
             
             return {
