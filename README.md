@@ -112,37 +112,46 @@ cd player_tracker
 The script will:
 - Create a Python virtual environment
 - Install all dependencies
-- Configure a systemd service
-- Optionally start the bot
+- Configure systemd services for both bots (Player Tracker and Merchant Bot)
+- Optionally start both bots
 
 #### Managing the Service
 
-After deployment, use these commands to manage the bot:
+After deployment, use these commands to manage both bots:
 
 ```bash
-./start.sh      # Start the bot
-./stop.sh       # Stop the bot
-./restart.sh    # Restart the bot
-./status.sh     # Check bot status
-./logs.sh       # View logs (last 50 lines)
-./logs.sh -f    # Follow logs in real-time
-./logs.sh -n 100  # View last 100 lines
+./start.sh      # Start both bots
+./stop.sh       # Stop both bots
+./restart.sh    # Restart both bots
+./status.sh     # Check status of both bots
+./logs.sh       # View Player Tracker logs (last 50 lines)
+./logs.sh merchant -f    # Follow Merchant Bot logs in real-time
+./logs.sh -n 100  # View last 100 lines of Player Tracker logs
 ```
 
 Or use systemctl directly:
 ```bash
+# Player Tracker Bot
 sudo systemctl start player_tracker
 sudo systemctl stop player_tracker
 sudo systemctl restart player_tracker
 sudo systemctl status player_tracker
-sudo journalctl -u player_tracker -f  # View logs
+sudo journalctl -u player_tracker -f
+
+# Merchant Bot
+sudo systemctl start merchant_bot
+sudo systemctl stop merchant_bot
+sudo systemctl restart merchant_bot
+sudo systemctl status merchant_bot
+sudo journalctl -u merchant_bot -f
 ```
 
 #### Auto-start on Boot
 
-To make the bot start automatically when the server reboots:
+To make both bots start automatically when the server reboots:
 ```bash
 sudo systemctl enable player_tracker
+sudo systemctl enable merchant_bot
 ```
 
 #### Updating the Bot
