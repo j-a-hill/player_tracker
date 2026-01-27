@@ -60,9 +60,10 @@ cp .env.example .env
 nano .env  # or use your preferred editor
 ```
 
-Add your credentials:
+Add your credentials for both bots:
 ```env
-DISCORD_TOKEN=your_actual_discord_bot_token
+DISCORD_TOKEN=your_player_tracker_bot_token
+MERCHANT_BOT_TOKEN=your_merchant_bot_token
 GOOGLE_SHEET_ID=your_actual_google_sheet_id
 GM_ROLE_ID=your_gm_role_id_or_leave_blank
 ```
@@ -90,59 +91,61 @@ chmod +x deploy.sh
 The script will:
 - ✅ Create a Python virtual environment in `venv/`
 - ✅ Install all dependencies from `requirements.txt`
-- ✅ Configure the systemd service
-- ✅ Ask if you want to start the service immediately
+- ✅ Configure the systemd services for **both bots** (Player Tracker and Merchant Bot)
+- ✅ Ask if you want to start both services immediately
 
-When prompted, choose `y` to enable and start the service.
+When prompted, choose `y` to enable and start both services.
 
 ## Managing the Bot
 
 ### Using Helper Scripts
 
-The repository includes convenient management scripts:
+The repository includes convenient management scripts that handle **both bots** (Player Tracker and Merchant Bot):
 
 ```bash
-./start.sh      # Start the bot
-./stop.sh       # Stop the bot
-./restart.sh    # Restart the bot
-./status.sh     # Check bot status
-./logs.sh       # View last 50 log lines
-./logs.sh -f    # Follow logs in real-time (Ctrl+C to exit)
-./logs.sh -n 100  # View last 100 log lines
+./start.sh      # Start both bots
+./stop.sh       # Stop both bots
+./restart.sh    # Restart both bots
+./status.sh     # Check status of both bots
+./logs.sh       # View last 50 log lines (Player Tracker by default)
+./logs.sh -f    # Follow Player Tracker logs in real-time (Ctrl+C to exit)
+./logs.sh merchant -f    # Follow Merchant Bot logs in real-time
+./logs.sh -n 100  # View last 100 log lines (Player Tracker)
+./logs.sh merchant -n 100  # View last 100 log lines (Merchant Bot)
 ```
 
 ### Using Systemctl Directly
 
 ```bash
-# Start the service
+# Player Tracker Bot
 sudo systemctl start player_tracker
-
-# Stop the service
 sudo systemctl stop player_tracker
-
-# Restart the service
 sudo systemctl restart player_tracker
-
-# Check status
 sudo systemctl status player_tracker
-
-# View logs
 sudo journalctl -u player_tracker -f
-sudo journalctl -u player_tracker -n 100 --no-pager
+
+# Merchant Bot
+sudo systemctl start merchant_bot
+sudo systemctl stop merchant_bot
+sudo systemctl restart merchant_bot
+sudo systemctl status merchant_bot
+sudo journalctl -u merchant_bot -f
 ```
 
 ## Auto-Start on Boot
 
-To make the bot start automatically when the VM reboots:
+To make both bots start automatically when the VM reboots:
 
 ```bash
 sudo systemctl enable player_tracker
+sudo systemctl enable merchant_bot
 ```
 
 To disable auto-start:
 
 ```bash
 sudo systemctl disable player_tracker
+sudo systemctl disable merchant_bot
 ```
 
 ## Updating the Bot
@@ -200,7 +203,12 @@ Look for:
 3. Test manually outside of systemd:
    ```bash
    source venv/bin/activate
+   # Test Player Tracker Bot
    python bot.py
+   # Press Ctrl+C to stop
+   
+   # Test Merchant Bot
+   python merchant_bot.py
    # Press Ctrl+C to stop
    deactivate
    ```

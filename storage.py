@@ -174,21 +174,28 @@ class PlayerStorage:
             
             row = player['row']
             
+            # Collect all updates to do them in a single batch
+            updates = []
+            
             if 'xp' in kwargs:
-                self.players_sheet.update_cell(row, 3, kwargs['xp'])
+                updates.append({'range': f'C{row}', 'values': [[kwargs['xp']]]})
             if 'copper' in kwargs:
-                self.players_sheet.update_cell(row, 4, kwargs['copper'])
+                updates.append({'range': f'D{row}', 'values': [[kwargs['copper']]]})
             if 'silver' in kwargs:
-                self.players_sheet.update_cell(row, 5, kwargs['silver'])
+                updates.append({'range': f'E{row}', 'values': [[kwargs['silver']]]})
             if 'electrum' in kwargs:
-                self.players_sheet.update_cell(row, 6, kwargs['electrum'])
+                updates.append({'range': f'F{row}', 'values': [[kwargs['electrum']]]})
             if 'gold' in kwargs:
-                self.players_sheet.update_cell(row, 7, kwargs['gold'])
+                updates.append({'range': f'G{row}', 'values': [[kwargs['gold']]]})
             if 'platinum' in kwargs:
-                self.players_sheet.update_cell(row, 8, kwargs['platinum'])
+                updates.append({'range': f'H{row}', 'values': [[kwargs['platinum']]]})
             if 'inventory' in kwargs:
                 inventory_json = json.dumps(kwargs['inventory'])
-                self.players_sheet.update_cell(row, 9, inventory_json)
+                updates.append({'range': f'I{row}', 'values': [[inventory_json]]})
+            
+            # Perform batch update if there are any updates
+            if updates:
+                self.players_sheet.batch_update(updates)
         except Exception as e:
             print(f"Error updating player: {e}")
     

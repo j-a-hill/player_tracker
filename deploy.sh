@@ -107,48 +107,66 @@ fi
 
 # Update the service file with current user and path
 echo ""
-echo "Configuring systemd service..."
+echo "Configuring systemd services..."
 CURRENT_USER=$(whoami)
 CURRENT_DIR="$SCRIPT_DIR"
 
 sed -e "s|YOUR_USERNAME|$CURRENT_USER|g" -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" player_tracker.service > player_tracker.service.tmp
+sed -e "s|YOUR_USERNAME|$CURRENT_USER|g" -e "s|/home/YOUR_USERNAME/player_tracker|$CURRENT_DIR|g" merchant_bot.service > merchant_bot.service.tmp
 
-# Install systemd service
+# Install systemd services
 echo ""
-echo "Installing systemd service..."
+echo "Installing systemd services..."
 echo "This requires sudo privileges."
 sudo cp player_tracker.service.tmp /etc/systemd/system/player_tracker.service
+sudo cp merchant_bot.service.tmp /etc/systemd/system/merchant_bot.service
 rm player_tracker.service.tmp
+rm merchant_bot.service.tmp
 sudo systemctl daemon-reload
-echo -e "${GREEN}✓${NC} Systemd service installed"
+echo -e "${GREEN}✓${NC} Systemd services installed"
 
-# Ask if user wants to enable and start the service
+# Ask if user wants to enable and start the services
 echo ""
-read -p "Do you want to enable and start the service now? (y/n) " -n 1 -r
+read -p "Do you want to enable and start both bots now? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     sudo systemctl enable player_tracker.service
+    sudo systemctl enable merchant_bot.service
     sudo systemctl start player_tracker.service
-    echo -e "${GREEN}✓${NC} Service enabled and started"
+    sudo systemctl start merchant_bot.service
+    echo -e "${GREEN}✓${NC} Services enabled and started"
     echo ""
-    echo "Service status:"
+    echo "Player Tracker Bot status:"
     sudo systemctl status player_tracker.service --no-pager
+    echo ""
+    echo "Merchant Bot status:"
+    sudo systemctl status merchant_bot.service --no-pager
 else
     echo ""
-    echo "Service installed but not started."
-    echo "To start it later, run:"
+    echo "Services installed but not started."
+    echo "To start them later, run:"
     echo "  sudo systemctl enable player_tracker.service"
+    echo "  sudo systemctl enable merchant_bot.service"
     echo "  sudo systemctl start player_tracker.service"
+    echo "  sudo systemctl start merchant_bot.service"
 fi
 
 echo ""
 echo -e "${GREEN}Deployment complete!${NC}"
 echo ""
-echo "Useful commands:"
+echo "Useful commands for Player Tracker Bot:"
 echo "  sudo systemctl status player_tracker    - Check service status"
 echo "  sudo systemctl stop player_tracker      - Stop the bot"
 echo "  sudo systemctl start player_tracker     - Start the bot"
 echo "  sudo systemctl restart player_tracker   - Restart the bot"
 echo "  sudo journalctl -u player_tracker -f    - View live logs"
 echo "  sudo journalctl -u player_tracker -n 50 - View last 50 log lines"
+echo ""
+echo "Useful commands for Merchant Bot:"
+echo "  sudo systemctl status merchant_bot      - Check service status"
+echo "  sudo systemctl stop merchant_bot        - Stop the bot"
+echo "  sudo systemctl start merchant_bot       - Start the bot"
+echo "  sudo systemctl restart merchant_bot     - Restart the bot"
+echo "  sudo journalctl -u merchant_bot -f      - View live logs"
+echo "  sudo journalctl -u merchant_bot -n 50   - View last 50 log lines"
 echo ""
