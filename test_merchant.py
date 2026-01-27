@@ -84,8 +84,8 @@ def test_bot_commands_removed():
     
     # Verify multi-currency support
     assert 'from dnd_utils import' in code, "bot.py doesn't import dnd_utils"
-    assert 'add_currency' in code, "add_currency command missing"
-    assert 'remove_currency' in code, "remove_currency command missing"
+    assert 'add_gold' in code, "add_gold command missing"
+    assert 'remove_gold' in code, "remove_gold command missing"
     
     print("✓ bot.py correctly cleaned up and has multi-currency support")
     return True
