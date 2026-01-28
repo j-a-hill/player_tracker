@@ -22,9 +22,27 @@ SHEET_ID = os.getenv('GOOGLE_SHEET_ID')
 GM_ROLE_ID = os.getenv('GM_ROLE_ID')
 NOTIFICATION_CHANNEL_ID = os.getenv('NOTIFICATION_CHANNEL_ID')
 
-# Load timekeeper config
-with open('timekeeper_config.yaml', 'r') as f:
-    config = yaml.safe_load(f)
+# Default timekeeper configuration
+DEFAULT_CONFIG = {
+    'time_ratio': 1.0,
+    'start_date': '1492-01-01 08:00:00',
+    'days_per_week': 7,
+    'notification_day': 0,
+    'notification_time': '20:00',
+    'default_inn_cost_copper': 350,
+    'training_days_required': 250
+}
+
+# Load timekeeper config - with error handling
+try:
+    with open('timekeeper_config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+except FileNotFoundError:
+    print("Warning: timekeeper_config.yaml not found. Using default configuration.")
+    config = DEFAULT_CONFIG.copy()
+except Exception as e:
+    print(f"Error loading timekeeper_config.yaml: {e}")
+    config = DEFAULT_CONFIG.copy()
 
 # Initialize bot with intents
 intents = discord.Intents.default()
@@ -83,9 +101,12 @@ async def on_ready():
         current_time = storage.get_game_time()
         if not current_time:
             start_time = config['start_date']
-            storage.set_game_time(start_time)
-            storage.set_last_real_time(format_game_time(datetime.now()))
-            print(f'Initialized game time to: {start_time}')
+            success_time = storage.set_game_time(start_time)
+            success_real = storage.set_last_real_time(format_game_time(datetime.now()))
+            if success_time and success_real:
+                print(f'Initialized game time to: {start_time}')
+            else:
+                print(f'Warning: Failed to initialize game time. Timekeeper sheet may not be accessible.')
         else:
             print(f'Game time already set to: {current_time}')
         
