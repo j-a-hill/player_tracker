@@ -22,32 +22,27 @@ SHEET_ID = os.getenv('GOOGLE_SHEET_ID')
 GM_ROLE_ID = os.getenv('GM_ROLE_ID')
 NOTIFICATION_CHANNEL_ID = os.getenv('NOTIFICATION_CHANNEL_ID')
 
+# Default timekeeper configuration
+DEFAULT_CONFIG = {
+    'time_ratio': 1.0,
+    'start_date': '1492-01-01 08:00:00',
+    'days_per_week': 7,
+    'notification_day': 0,
+    'notification_time': '20:00',
+    'default_inn_cost_copper': 350,
+    'training_days_required': 250
+}
+
 # Load timekeeper config - with error handling
 try:
     with open('timekeeper_config.yaml', 'r') as f:
         config = yaml.safe_load(f)
 except FileNotFoundError:
     print("Warning: timekeeper_config.yaml not found. Using default configuration.")
-    config = {
-        'time_ratio': 1.0,
-        'start_date': '1492-01-01 08:00:00',
-        'days_per_week': 7,
-        'notification_day': 0,
-        'notification_time': '20:00',
-        'default_inn_cost_copper': 350,
-        'training_days_required': 250
-    }
+    config = DEFAULT_CONFIG.copy()
 except Exception as e:
     print(f"Error loading timekeeper_config.yaml: {e}")
-    config = {
-        'time_ratio': 1.0,
-        'start_date': '1492-01-01 08:00:00',
-        'days_per_week': 7,
-        'notification_day': 0,
-        'notification_time': '20:00',
-        'default_inn_cost_copper': 350,
-        'training_days_required': 250
-    }
+    config = DEFAULT_CONFIG.copy()
 
 # Initialize bot with intents
 intents = discord.Intents.default()
