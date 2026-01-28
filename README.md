@@ -240,11 +240,10 @@ pip install -r requirements.txt
 ### Player Commands
 
 **Main Bot:**
-- `/profile` - View your character profile with XP, gold, and inventory
+- `/profile` - View your character profile with XP, gold, inventory, and training progress
 - `/inventory` - View your inventory in detail
-- `/training view` - View your current training progress (NEW)
-- `/training list <type>` - List available skills or languages to train (NEW)
-- `/training start <type> <name>` - Start training in a skill or language (NEW)
+- `/training_list` - List available skills and languages for training (optional: specify type)
+- `/start_training <option>` - Start training in a skill or language (e.g., "Stealth" or "Elvish")
 - `/help` - Show all available player commands
 
 **Merchant Bot:**
@@ -349,7 +348,7 @@ The new timekeeper system adds in-game time tracking, training, and weekly livin
 
 1. Start the Timekeeper and Inn bots alongside your main bots
 2. Use `/current_time` to see the current in-game date
-3. Players can start training with `/training start type:skill name:Acrobatics`
+3. Players can start training with `/start_training option:Acrobatics`
 4. As time passes (automatically or via `/advance_time`), players:
    - Progress in their training (7 days per week)
    - Get charged weekly inn fees
@@ -362,8 +361,8 @@ The new timekeeper system adds in-game time tracking, training, and weekly livin
 /set_time date:1492-01-01 time:08:00
 
 # Player starts training
-/training list type:skill
-/training start type:skill name:Stealth
+/training_list
+/start_training option:Stealth
 
 # GM advances time by one week
 /advance_time weeks:1
