@@ -255,8 +255,11 @@ class AdventureView(discord.ui.View):
             for item in self.children:
                 item.disabled = True
             
+            # Defer the response to give us time to process
+            await interaction.response.defer()
+            
             # Update the message to show disabled buttons
-            await interaction.response.edit_message(view=self)
+            await interaction.edit_original_response(view=self)
             
             next_node = choice.get('next')
             if next_node:
