@@ -121,10 +121,19 @@ async def profile(interaction: discord.Interaction):
     if training_list:
         training_text = ""
         for training in training_list:
-            progress_pct = (training['days_spent'] / training['days_required']) * 100
-            training_progress_bar = create_progress_bar(progress_pct / 100)
+            # Prevent division by zero
+            if training['days_required'] > 0:
+                progress_pct = (training['days_spent'] / training['days_required']) * 100
+                training_progress_bar = create_progress_bar(progress_pct / 100)
+            else:
+                training_progress_bar = create_progress_bar(0)
             status_emoji = "✅" if training['status'] == 'Complete' else "⏳"
             training_text += f"{status_emoji} {training['skill_or_language']}: {training['days_spent']}/{training['days_required']} days\n{training_progress_bar}\n"
+        
+        # Truncate if too long (Discord limit is 1024 chars for field values)
+        if len(training_text) > 1024:
+            training_text = training_text[:1020] + "..."
+        
         embed.add_field(name="📚 Training", value=training_text, inline=False)
     
     inventory_text = "\n".join(player['inventory']) if player['inventory'] else "Empty"
@@ -200,16 +209,25 @@ async def training_list(
             color=discord.Color.green()
         )
         
+        if not skills and not languages:
+            embed.description = "No training options available. Please contact the GM."
+        
         if skills:
             skill_text = ""
             for opt in skills:
                 skill_text += f"**{opt['name']}**: {opt['description']}\n"
+            # Truncate if too long (Discord limit is 1024 chars for field values)
+            if len(skill_text) > 1024:
+                skill_text = skill_text[:1020] + "..."
             embed.add_field(name="Skills", value=skill_text, inline=False)
         
         if languages:
             lang_text = ""
             for opt in languages:
                 lang_text += f"**{opt['name']}**: {opt['description']}\n"
+            # Truncate if too long (Discord limit is 1024 chars for field values)
+            if len(lang_text) > 1024:
+                lang_text = lang_text[:1020] + "..."
             embed.add_field(name="Languages", value=lang_text, inline=False)
         
         await interaction.response.send_message(embed=embed)
@@ -226,6 +244,9 @@ async def training_list(
             option_text = ""
             for opt in options:
                 option_text += f"**{opt['name']}**: {opt['description']}\n"
+            # Truncate if too long (Discord limit is 4096 chars for descriptions)
+            if len(option_text) > 4096:
+                option_text = option_text[:4092] + "..."
             embed.description = option_text
         else:
             embed.description = f"No {training_type}s available for training."
