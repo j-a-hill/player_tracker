@@ -122,13 +122,14 @@ The training system allows players to spend downtime training in skills or langu
 These commands are added to the main Player Tracker Bot (`bot.py`):
 
 **Player Commands:**
-- `/training view` - See your current training progress
-- `/training list <type>` - List available skills or languages
-  - `/training list type:skill` - List all D&D 5e skills
-  - `/training list type:language` - List all D&D languages
-- `/training start <type> <name>` - Start training
-  - Example: `/training start type:skill name:Acrobatics`
-  - Example: `/training start type:language name:Elvish`
+- `/profile` - See your character profile including training progress
+- `/training_list` - List available skills and languages (optional: specify type)
+  - Example: `/training_list type:skill` - List all D&D 5e skills
+  - Example: `/training_list type:language` - List all D&D languages
+  - Example: `/training_list` - List both skills and languages
+- `/start_training <option>` - Start training in a skill or language
+  - Example: `/start_training option:Acrobatics`
+  - Example: `/start_training option:Elvish`
 
 ### Available Options
 
@@ -144,11 +145,12 @@ These commands are added to the main Player Tracker Bot (`bot.py`):
 
 ### How It Works
 
-1. Player starts training with `/training start`
+1. Player starts training with `/start_training`
 2. Training requires **250 in-game days** by default (configurable in `timekeeper_config.yaml`)
 3. Progress is automatically updated each in-game week (7 days) by the Timekeeper Bot
 4. Notifications are sent when training is completed
 5. Players can train multiple things simultaneously
+6. View training progress anytime with `/profile`
 
 ### Data Storage
 
@@ -243,14 +245,14 @@ Here's a typical workflow:
 
 2. **Player checks status**:
    ```
-   /profile          # Check gold
+   /profile          # Check gold, XP, and training progress
    /inn_status       # Check weekly cost
-   /training list type:skill
+   /training_list
    ```
 
 3. **Player starts training**:
    ```
-   /training start type:skill name:Acrobatics
+   /start_training option:Acrobatics
    ```
 
 4. **Time passes** (GM can advance manually or let it flow):
@@ -266,7 +268,7 @@ Here's a typical workflow:
 
 6. **Player checks progress**:
    ```
-   /training view     # Check training progress
+   /profile           # Check training progress, gold, and XP
    /inn_status        # Check remaining gold
    ```
 
@@ -309,8 +311,8 @@ python test_setup.py
 Test the new features manually:
 1. Start all four bots
 2. Use `/current_time` to verify timekeeper is working
-3. Use `/training list type:skill` to see available skills
-4. Use `/training start` to begin training
+3. Use `/training_list` to see available skills and languages
+4. Use `/start_training` to begin training
 5. Use `/advance_time weeks:1` to trigger a weekly event
 6. Check the notification channel for weekly summary
 

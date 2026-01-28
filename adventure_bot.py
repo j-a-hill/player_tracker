@@ -189,6 +189,7 @@ class AdventureView(discord.ui.View):
         self.adventure_id = adventure_id
         self.node_id = node_id
         self.user_id = user_id
+        self.processed = False  # Flag to prevent duplicate processing
         
         # Load the node data
         adventure = adventures.get('adventures', {}).get(adventure_id, {})
@@ -213,6 +214,14 @@ class AdventureView(discord.ui.View):
     def create_callback(self, choice):
         """Create a callback function for a button."""
         async def callback(interaction: discord.Interaction):
+            # Check if already processed to prevent duplicate rewards
+            if self.processed:
+                await interaction.response.send_message(
+                    "This choice has already been made!",
+                    ephemeral=True
+                )
+                return
+            
             # Check if this is the right user
             if str(interaction.user.id) != self.user_id:
                 await interaction.response.send_message(
@@ -220,6 +229,9 @@ class AdventureView(discord.ui.View):
                     ephemeral=True
                 )
                 return
+            
+            # Mark as processed immediately to prevent duplicate processing
+            self.processed = True
             
             # Check requirements if any
             if 'requirement' in choice:
@@ -234,6 +246,7 @@ class AdventureView(discord.ui.View):
                     # Convert copper to gold for comparison
                     player_gold = player['copper'] / 100
                     if player_gold < req['gold']:
+                        self.processed = False  # Reset if requirement not met
                         await interaction.response.send_message(
                             f"❌ You don't have enough gold! (Need {req['gold']} gp, have {player_gold:.1f} gp)",
                             ephemeral=True
@@ -244,6 +257,7 @@ class AdventureView(discord.ui.View):
                 if 'items' in req:
                     for required_item in req['items']:
                         if required_item not in player['inventory']:
+                            self.processed = False  # Reset if requirement not met
                             await interaction.response.send_message(
                                 f"❌ You don't have {required_item}!",
                                 ephemeral=True
