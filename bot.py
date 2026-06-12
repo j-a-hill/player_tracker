@@ -95,8 +95,8 @@ async def profile(interaction: discord.Interaction):
     if not player:
         player = storage.create_player(player_id, interaction.user.display_name)
     
-    # Calculate level and XP progress
-    level, current_level_xp, next_level_xp, progress = get_xp_progress(player['xp'])
+    # Calculate level and progress
+    level, current_level_xp, next_level_xp, progress, sessions_to_next = get_xp_progress(player['xp'])
     progress_bar = create_progress_bar(progress)
     
     embed = discord.Embed(
@@ -104,11 +104,11 @@ async def profile(interaction: discord.Interaction):
         color=discord.Color.blue()
     )
     
-    # XP and Level info
+    # Session and Level info
     if level < 20:
-        xp_text = f"Level {level}\n{player['xp']} / {next_level_xp} XP\n{progress_bar}"
+        xp_text = f"Level {level}\n{player['xp']} Sessions (Sessions to next level: {int(sessions_to_next)})\n{progress_bar}"
     else:
-        xp_text = f"Level {level} (Max Level)\n{player['xp']} XP"
+        xp_text = f"Level {level} (Max Level)\n{player['xp']} Sessions"
     
     embed.add_field(name="⭐ Experience", value=xp_text, inline=False)
     
@@ -309,6 +309,18 @@ async def start_training(
                     f"✅ You have already completed training in **{option_name}**!",
                     ephemeral=True
                 )
+            elif training['status'] == 'Paused':
+                # Resume it
+                success = storage.resume_training(player_id, option_name)
+                if success:
+                    await interaction.response.send_message(
+                        f"✅ Resumed training in **{option_name}**! Progress: {training['days_spent']}/{training['days_required']} days."
+                    )
+                else:
+                    await interaction.response.send_message(
+                        "❌ Failed to resume training.",
+                        ephemeral=True
+                    )
             else:
                 await interaction.response.send_message(
                     f"⏳ You are already training in **{option_name}** ({training['days_spent']}/{training['days_required']} days).",
@@ -330,12 +342,57 @@ async def start_training(
         )
 
 
+
+@bot.tree.command(name="stop_training", description="Pause your current training progress")
+@app_commands.describe(option="The name of the skill or language to stop training")
+async def stop_training(interaction: discord.Interaction, option: str):
+    """Pause current training."""
+    if not storage:
+        await interaction.response.send_message("Storage not configured!", ephemeral=True)
+        return
+        
+    player_id = str(interaction.user.id)
+    current_training = storage.get_player_training(player_id)
+    
+    for training in current_training:
+        if training['skill_or_language'].lower() == option.lower():
+            if training['status'] == 'Complete':
+                await interaction.response.send_message(
+                    f"✅ You have already completed training in **{training['skill_or_language']}**!",
+                    ephemeral=True
+                )
+                return
+            elif training['status'] == 'Paused':
+                await interaction.response.send_message(
+                    f"⏸️ Training for **{training['skill_or_language']}** is already paused.",
+                    ephemeral=True
+                )
+                return
+                
+            success = storage.pause_training(player_id, training['skill_or_language'])
+            if success:
+                await interaction.response.send_message(
+                    f"⏸️ Paused training in **{training['skill_or_language']}**. You can resume it later with `/start_training`."
+                )
+            else:
+                await interaction.response.send_message(
+                    "❌ Failed to pause training.",
+                    ephemeral=True
+                )
+            return
+            
+    await interaction.response.send_message(
+        f"❌ You are not currently training **{option}**.",
+        ephemeral=True
+    )
+
+
 # GM Commands
-@bot.tree.command(name="add_xp", description="[GM] Add XP to a player")
-@app_commands.describe(player="The player to give XP to", amount="Amount of XP to add")
+@bot.tree.command(name="count_session", description="[GM] Add sessions to a player")
+@app_commands.describe(player="The player to give sessions to", amount="Amount of sessions to add")
 @is_gm()
-async def add_xp(interaction: discord.Interaction, player: discord.Member, amount: int):
-    """Add XP to a player."""
+async def count_session(interaction: discord.Interaction, player: discord.Member, amount: int = 1):
+    """Add sessions to a player."""
     if not storage:
         await interaction.response.send_message("Storage not configured!", ephemeral=True)
         return
@@ -363,31 +420,36 @@ async def add_xp(interaction: discord.Interaction, player: discord.Member, amoun
         )
         embed.add_field(name="Previous Level", value=str(old_level), inline=True)
         embed.add_field(name="New Level", value=str(new_level), inline=True)
-        embed.add_field(name="Total XP", value=str(new_xp), inline=True)
+        embed.add_field(name="Total Sessions", value=str(new_xp), inline=True)
         
         if new_level < 20:
             next_level_xp = get_xp_for_level(new_level + 1)
             embed.add_field(
                 name="Next Level",
-                value=f"{next_level_xp - new_xp} XP until level {new_level + 1}",
+                value=f"{next_level_xp - new_xp} sessions until level {new_level + 1}",
                 inline=False
             )
         else:
             embed.add_field(name="Achievement", value="Maximum level reached!", inline=False)
-        
+            
         await interaction.response.send_message(embed=embed)
     else:
-        # No level up, just show XP gain
-        await interaction.response.send_message(
-            f"✅ Added {amount} XP to {player.mention}. New total: {new_xp} XP (Level {new_level})"
-        )
+        # Regular session add message
+        _, _, next_level_xp, progress, sessions_to_next = get_xp_progress(new_xp)
+        
+        if new_level < 20:
+            msg = f"✅ Added {amount} session(s) to {player.display_name}. (Total: {new_xp}, {int(sessions_to_next)} to next level)"
+        else:
+            msg = f"✅ Added {amount} session(s) to {player.display_name}. (Max Level)"
+            
+        await interaction.response.send_message(msg)
 
 
-@bot.tree.command(name="remove_xp", description="[GM] Remove XP from a player")
-@app_commands.describe(player="The player to remove XP from", amount="Amount of XP to remove")
+@bot.tree.command(name="remove_session", description="[GM] Remove sessions from a player")
+@app_commands.describe(player="The player to remove sessions from", amount="Amount of sessions to remove")
 @is_gm()
-async def remove_xp(interaction: discord.Interaction, player: discord.Member, amount: int):
-    """Remove XP from a player."""
+async def remove_session(interaction: discord.Interaction, player: discord.Member, amount: int):
+    """Remove sessions from a player."""
     if not storage:
         await interaction.response.send_message("Storage not configured!", ephemeral=True)
         return
@@ -408,11 +470,16 @@ async def remove_xp(interaction: discord.Interaction, player: discord.Member, am
     # Check for level down
     if new_level < old_level:
         await interaction.response.send_message(
-            f"✅ Removed {amount} XP from {player.mention}. New total: {new_xp} XP (Level {new_level}, down from {old_level})"
+            f"✅ Removed {amount} session(s) from {player.mention}. New total: {new_xp} (Level {new_level}, down from {old_level})"
         )
     else:
+        _, _, next_level_xp, progress, sessions_to_next = get_xp_progress(new_xp)
+        if new_level < 20:
+            extra = f"{int(sessions_to_next)} to next level"
+        else:
+            extra = "Max Level"
         await interaction.response.send_message(
-            f"✅ Removed {amount} XP from {player.mention}. New total: {new_xp} XP (Level {new_level})"
+            f"✅ Removed {amount} session(s) from {player.mention}. New total: {new_xp} ({extra})"
         )
 
 
@@ -572,8 +639,8 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(
         name="🎲 GM Commands - XP",
         value=(
-            "`/add_xp <player> <amount>` - Give XP (shows level-up!)\n"
-            "`/remove_xp <player> <amount>` - Remove XP from a player"
+            "`/count_session <player> <amount>` - Give sessions (shows level-up!)\n"
+            "`/remove_session <player> <amount>` - Remove sessions from a player"
         ),
         inline=False
     )

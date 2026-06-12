@@ -44,13 +44,13 @@ class PlayerStorage:
             # Check if headers exist, if not add them
             existing_data = self.players_sheet.get_all_values()
             if not existing_data or len(existing_data) == 0:
-                self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Inventory'])
-            elif existing_data[0] != ['Player ID', 'Name', 'XP', 'Copper', 'Inventory']:
+                self.players_sheet.append_row(['Player ID', 'Name', 'Sessions', 'Copper', 'Inventory'])
+            elif existing_data[0] != ['Player ID', 'Name', 'Sessions', 'Copper', 'Inventory']:
                 # Headers exist but are incorrect, insert them at the top
-                self.players_sheet.insert_row(['Player ID', 'Name', 'XP', 'Copper', 'Inventory'], 1)
+                self.players_sheet.insert_row(['Player ID', 'Name', 'Sessions', 'Copper', 'Inventory'], 1)
         except gspread.exceptions.WorksheetNotFound:
             self.players_sheet = self.spreadsheet.add_worksheet('Players', 100, 10)
-            self.players_sheet.append_row(['Player ID', 'Name', 'XP', 'Copper', 'Inventory'])
+            self.players_sheet.append_row(['Player ID', 'Name', 'Sessions', 'Copper', 'Inventory'])
         
         # Training sheet for skills and languages
         try:
@@ -184,7 +184,7 @@ class PlayerStorage:
                             inventory = []
                     
                     try:
-                        xp = int(record.get('XP', 0))
+                        xp = int(record.get('Sessions', record.get('XP', 0)))
                     except (ValueError, TypeError):
                         xp = 0
                     
@@ -455,6 +455,40 @@ class PlayerStorage:
         except Exception as e:
             print(f"Error starting training: {e}")
             return False
+            
+    def pause_training(self, player_id: str, skill_or_language: str) -> bool:
+        """Pause training for a player."""
+        if not hasattr(self, 'training_sheet') or not self.training_sheet:
+            return False
+            
+        try:
+            training_list = self.get_player_training(player_id)
+            for training in training_list:
+                if training['skill_or_language'].lower() == skill_or_language.lower():
+                    if training['status'] != 'Complete':
+                        self.training_sheet.update_cell(training['row'], 6, 'Paused')
+                        return True
+            return False
+        except Exception as e:
+            print(f"Error pausing training: {e}")
+            return False
+            
+    def resume_training(self, player_id: str, skill_or_language: str) -> bool:
+        """Resume training for a player."""
+        if not hasattr(self, 'training_sheet') or not self.training_sheet:
+            return False
+            
+        try:
+            training_list = self.get_player_training(player_id)
+            for training in training_list:
+                if training['skill_or_language'].lower() == skill_or_language.lower():
+                    if training['status'] == 'Paused':
+                        self.training_sheet.update_cell(training['row'], 6, 'In Progress')
+                        return True
+            return False
+        except Exception as e:
+            print(f"Error resuming training: {e}")
+            return False
     
     def update_training_progress(self, player_id: str, skill_or_language: str, days_to_add: int):
         """Update training progress for a player."""
@@ -634,7 +668,7 @@ class PlayerStorage:
                         inventory = []
                 
                 try:
-                    xp = int(record.get('XP', 0))
+                    xp = int(record.get('Sessions', record.get('XP', 0)))
                 except (ValueError, TypeError):
                     xp = 0
                 
