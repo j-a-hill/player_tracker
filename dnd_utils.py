@@ -38,17 +38,20 @@ CURRENCY_VALUES = {
 
 def get_level_from_xp(xp: int) -> int:
     """
-    Calculate character level from XP.
+    Calculate character level from session count.
+    Level n requires sum(1..n-1) sessions.
     
     Args:
-        xp: Current experience points
+        xp: Current session count
         
     Returns:
         Character level (1-20)
     """
+    # L * (L - 1) / 2 <= xp
+    # 0 = 1, 1 = 2, 3 = 3, 6 = 4, 10 = 5...
     level = 1
     for lvl in range(20, 0, -1):
-        if xp >= XP_THRESHOLDS[lvl]:
+        if xp >= (lvl * (lvl - 1)) // 2:
             level = lvl
             break
     return level
@@ -56,15 +59,16 @@ def get_level_from_xp(xp: int) -> int:
 
 def get_xp_for_level(level: int) -> int:
     """
-    Get XP threshold for a specific level.
+    Get session threshold for a specific level.
     
     Args:
         level: Character level (1-20)
         
     Returns:
-        XP required for that level
+        Sessions required for that level
     """
-    return XP_THRESHOLDS.get(min(max(level, 1), 20), 0)
+    level = min(max(level, 1), 20)
+    return (level * (level - 1)) // 2
 
 
 def get_xp_progress(xp: int) -> tuple:
@@ -82,14 +86,14 @@ def get_xp_progress(xp: int) -> tuple:
     
     if current_level >= 20:
         # Max level reached
-        return (20, xp, xp, 100.0)
+        return (20, xp, xp, 100.0, 0)
     
     next_level_xp = get_xp_for_level(current_level + 1)
     xp_into_level = xp - current_level_xp
     xp_needed_for_next = next_level_xp - current_level_xp
     progress = (xp_into_level / xp_needed_for_next) * 100 if xp_needed_for_next > 0 else 0
     
-    return (current_level, current_level_xp, next_level_xp, progress)
+    return (current_level, current_level_xp, next_level_xp, progress, xp_needed_for_next - xp_into_level)
 
 
 def format_currency(total_copper: int = 0) -> str:

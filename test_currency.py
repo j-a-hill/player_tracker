@@ -87,7 +87,7 @@ def test_storage_player_structure():
         code = f.read()
     
     # Check header has only Copper (not Silver, Electrum, Gold, Platinum)
-    assert "['Player ID', 'Name', 'XP', 'Copper', 'Inventory']" in code, \
+    assert "['Player ID', 'Name', 'Sessions', 'Copper', 'Inventory']" in code, \
         "Player sheet header should only have Copper field"
     
     # Check that update_player doc mentions only copper
