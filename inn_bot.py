@@ -350,15 +350,6 @@ async def help_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-# Run the bot
-if __name__ == '__main__':
-    if not TOKEN:
-        print("Error: INN_BOT_TOKEN not found in environment variables!")
-        print("Please add INN_BOT_TOKEN to your .env file.")
-        exit(1)
-    
-    bot.run(TOKEN)
-
 @bot.tree.command(name="check_out", description="[GM] Check a player out of the inn (exempts from weekly charges)")
 @app_commands.describe(player="Player to check out")
 @is_gm()
@@ -398,3 +389,13 @@ async def check_in(interaction: discord.Interaction, player: discord.Member):
         await interaction.response.send_message(f"✅ {player.mention} has checked into the inn and will now receive weekly charges.")
     else:
         await interaction.response.send_message("❌ Failed to update exemption status.", ephemeral=True)
+
+
+# Run the bot
+if __name__ == '__main__':
+    if not TOKEN:
+        print("Error: INN_BOT_TOKEN not found in environment variables!")
+        print("Please add INN_BOT_TOKEN to your .env file.")
+        exit(1)
+    
+    bot.run(TOKEN)
