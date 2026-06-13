@@ -326,6 +326,8 @@ async def help_command(interaction: discord.Interaction):
         value=(
             "`/set_inn_cost [cost] [player]` - Set weekly cost (for specific player or view default)\n"
             "`/exempt_player <player> [exempt]` - Exempt a player from charges\n"
+            "`/check_out <player>` - Quick exempt shortcut (player stops weekly inn charges)\n"
+            "`/check_in <player>` - Remove exemption (player resumes weekly inn charges)\n"
             "`/inn_list` - View all players' inn configurations"
         ),
         inline=False
@@ -358,17 +360,24 @@ async def check_out(interaction: discord.Interaction, player: discord.Member):
     if not storage:
         await interaction.response.send_message("Storage not configured!", ephemeral=True)
         return
-        
+
     player_id = str(player.id)
     player_data = storage.get_player(player_id)
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
-        
+
     success = storage.set_inn_exempt(player_id, True)
+
     if success:
-        await interaction.response.send_message(f"✅ {player.mention} has checked out of the inn and is now **exempt** from weekly charges.")
+        await interaction.response.send_message(
+            f"✅ {player.mention} has checked out of the inn and is now **exempt** from weekly charges."
+        )
     else:
-        await interaction.response.send_message("❌ Failed to update exemption status.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Failed to update exemption status!",
+            ephemeral=True
+        )
+
 
 @bot.tree.command(name="check_in", description="[GM] Check a player into the inn (applies weekly charges)")
 @app_commands.describe(player="Player to check in")
@@ -378,17 +387,23 @@ async def check_in(interaction: discord.Interaction, player: discord.Member):
     if not storage:
         await interaction.response.send_message("Storage not configured!", ephemeral=True)
         return
-        
+
     player_id = str(player.id)
     player_data = storage.get_player(player_id)
     if not player_data:
         player_data = storage.create_player(player_id, player.display_name)
-        
+
     success = storage.set_inn_exempt(player_id, False)
+
     if success:
-        await interaction.response.send_message(f"✅ {player.mention} has checked into the inn and will now receive weekly charges.")
+        await interaction.response.send_message(
+            f"✅ {player.mention} has checked into the inn and will now receive weekly charges."
+        )
     else:
-        await interaction.response.send_message("❌ Failed to update exemption status.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Failed to update exemption status!",
+            ephemeral=True
+        )
 
 
 # Run the bot
