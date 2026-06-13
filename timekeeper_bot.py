@@ -30,7 +30,7 @@ DEFAULT_CONFIG = {
     'notification_day': 0,
     'notification_time': '20:00',
     'default_inn_cost_copper': 350,
-    'training_days_required': 250
+    'training_days_required': 100
 }
 
 # Load timekeeper config - with error handling
