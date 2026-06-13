@@ -36,7 +36,7 @@ notification_time: "20:00"
 default_inn_cost_copper: 350  # 3.5 gold per week
 
 # Training
-training_days_required: 250  # D&D 5e standard downtime training
+training_days_required: 100  # Default downtime training
 ```
 
 ### Commands
@@ -146,7 +146,7 @@ These commands are added to the main Player Tracker Bot (`bot.py`):
 ### How It Works
 
 1. Player starts training with `/start_training`
-2. Training requires **250 in-game days** by default (configurable in `timekeeper_config.yaml`)
+2. Training requires **100 in-game days** by default (configurable in `timekeeper_config.yaml`)
 3. Progress is automatically updated each in-game week (7 days) by the Timekeeper Bot
 4. Notifications are sent when training is completed
 5. Players can train multiple things simultaneously
@@ -279,8 +279,8 @@ The new sheets added to your Google Spreadsheet:
 ### Training Sheet
 | Player ID | Training Type | Skill/Language | Days Spent | Days Required | Status |
 |-----------|---------------|----------------|------------|---------------|---------|
-| 123456    | Skill         | Acrobatics     | 50         | 250           | In Progress |
-| 123456    | Language      | Elvish         | 250        | 250           | Complete |
+| 123456    | Skill         | Acrobatics     | 50         | 100           | In Progress |
+| 123456    | Language      | Elvish         | 100        | 100           | Complete |
 
 ### TrainingOptions Sheet
 | Type     | Name       | Description |
@@ -383,7 +383,7 @@ New methods added to `PlayerStorage` class:
 **Training:**
 - `get_training_options(training_type: Optional[str] = None) -> List[Dict]`
 - `get_player_training(player_id: str) -> List[Dict]`
-- `start_training(player_id: str, training_type: str, skill_or_language: str, days_required: int = 250) -> bool`
+- `start_training(player_id: str, training_type: str, skill_or_language: str, days_required: int = 100) -> bool`
 - `update_training_progress(player_id: str, skill_or_language: str, days_to_add: int) -> bool`
 
 **Timekeeper:**

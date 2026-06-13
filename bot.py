@@ -333,7 +333,7 @@ async def start_training(
     
     if success:
         await interaction.response.send_message(
-            f"✅ Started training in **{option_name}**! Training requires 250 days of downtime. Progress will be tracked automatically by the timekeeper."
+            f"✅ Started training in **{option_name}**! Training requires 100 days of downtime. Progress will be tracked automatically by the timekeeper."
         )
     else:
         await interaction.response.send_message(

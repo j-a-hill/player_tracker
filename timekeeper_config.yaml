@@ -25,4 +25,4 @@ default_inn_cost_copper: 350  # 3.5 gold per week
 
 # Training
 # Default days required for training completion
-training_days_required: 250  # Standard D&D 5e downtime training time
+training_days_required: 100  # Default downtime training time

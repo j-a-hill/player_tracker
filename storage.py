@@ -428,7 +428,7 @@ class PlayerStorage:
                         'training_type': record.get('Training Type', ''),
                         'skill_or_language': record.get('Skill/Language', ''),
                         'days_spent': int(record.get('Days Spent', 0)),
-                        'days_required': int(record.get('Days Required', 250)),
+                        'days_required': int(record.get('Days Required', 100)),
                         'status': record.get('Status', 'In Progress'),
                         'row': idx
                     })
@@ -437,7 +437,7 @@ class PlayerStorage:
             print(f"Error getting player training: {e}")
             return []
     
-    def start_training(self, player_id: str, training_type: str, skill_or_language: str, days_required: int = 250):
+    def start_training(self, player_id: str, training_type: str, skill_or_language: str, days_required: int = 100):
         """Start training for a player."""
         if not hasattr(self, 'training_sheet') or not self.training_sheet:
             return False
