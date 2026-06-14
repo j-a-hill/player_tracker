@@ -460,11 +460,11 @@ class PlayerStorage:
         """Pause training for a player."""
         if not hasattr(self, 'training_sheet') or not self.training_sheet:
             return False
-            
+
         try:
             training_list = self.get_player_training(player_id)
             for training in training_list:
-                if training['skill_or_language'].lower() == skill_or_language.lower():
+                if training['skill_or_language'].lower().strip() == skill_or_language.lower().strip():
                     if training['status'] != 'Complete':
                         self.training_sheet.update_cell(training['row'], 6, 'Paused')
                         return True
@@ -477,11 +477,11 @@ class PlayerStorage:
         """Resume training for a player."""
         if not hasattr(self, 'training_sheet') or not self.training_sheet:
             return False
-            
+
         try:
             training_list = self.get_player_training(player_id)
             for training in training_list:
-                if training['skill_or_language'].lower() == skill_or_language.lower():
+                if training['skill_or_language'].lower().strip() == skill_or_language.lower().strip():
                     if training['status'] == 'Paused':
                         self.training_sheet.update_cell(training['row'], 6, 'In Progress')
                         return True
@@ -494,11 +494,11 @@ class PlayerStorage:
         """Update training progress for a player."""
         if not hasattr(self, 'training_sheet') or not self.training_sheet:
             return False
-        
+
         try:
             training_list = self.get_player_training(player_id)
             for training in training_list:
-                if training['skill_or_language'].lower() == skill_or_language.lower():
+                if training['skill_or_language'].lower().strip() == skill_or_language.lower().strip():
                     new_days = training['days_spent'] + days_to_add
                     row = training['row']
                     

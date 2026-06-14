@@ -281,14 +281,14 @@ async def start_training(
     option_name = None
     
     for skill in skills:
-        if skill['name'].lower() == option.lower():
+        if skill['name'].lower().strip() == option.lower().strip():
             training_type = 'Skill'
             option_name = skill['name']
             break
-    
+
     if not training_type:
         for lang in languages:
-            if lang['name'].lower() == option.lower():
+            if lang['name'].lower().strip() == option.lower().strip():
                 training_type = 'Language'
                 option_name = lang['name']
                 break
@@ -303,7 +303,7 @@ async def start_training(
     # Check if already training this
     current_training = storage.get_player_training(player_id)
     for training in current_training:
-        if training['skill_or_language'].lower() == option.lower():
+        if training['skill_or_language'].lower().strip() == option.lower().strip():
             if training['status'] == 'Complete':
                 await interaction.response.send_message(
                     f"✅ You have already completed training in **{option_name}**!",
@@ -355,7 +355,7 @@ async def stop_training(interaction: discord.Interaction, option: str):
     current_training = storage.get_player_training(player_id)
     
     for training in current_training:
-        if training['skill_or_language'].lower() == option.lower():
+        if training['skill_or_language'].lower().strip() == option.lower().strip():
             if training['status'] == 'Complete':
                 await interaction.response.send_message(
                     f"✅ You have already completed training in **{training['skill_or_language']}**!",
