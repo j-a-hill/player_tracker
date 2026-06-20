@@ -405,6 +405,62 @@ async def stop_training_autocomplete(
     return choices[:25]
 
 
+
+@bot.tree.command(name="training_progress", description="View your current training progress")
+async def training_progress(interaction: discord.Interaction):
+    """Show all active and paused training for the player."""
+    if not storage:
+        await interaction.response.send_message("Storage not configured!", ephemeral=True)
+        return
+
+    player_id = str(interaction.user.id)
+    training_list = storage.get_player_training(player_id)
+
+    if not training_list:
+        await interaction.response.send_message(
+            "📚 You have no training records.",
+            ephemeral=True
+        )
+        return
+
+    embed = discord.Embed(
+        title="📚 Training Progress",
+        color=discord.Color.blue()
+    )
+
+    active = [t for t in training_list if t['status'] == 'In Progress']
+    paused = [t for t in training_list if t['status'] == 'Paused']
+    complete = [t for t in training_list if t['status'] == 'Complete']
+
+    for t in active:
+        pct = int((t['days_spent'] / t['days_required']) * 100) if t['days_required'] > 0 else 0
+        bar = '█' * (pct // 10) + '░' * (10 - pct // 10)
+        embed.add_field(
+            name=f"⚔️ {t['skill_or_language']} ({t['training_type'].title()})",
+            value=f"{bar} {pct}%\n{t['days_spent']}/{t['days_required']} days",
+            inline=False
+        )
+
+    for t in paused:
+        pct = int((t['days_spent'] / t['days_required']) * 100) if t['days_required'] > 0 else 0
+        embed.add_field(
+            name=f"⏸️ {t['skill_or_language']} (Paused)",
+            value=f"{t['days_spent']}/{t['days_required']} days — {pct}%",
+            inline=False
+        )
+
+    for t in complete:
+        embed.add_field(
+            name=f"✅ {t['skill_or_language']} (Complete)",
+            value=f"{t['days_required']}/{t['days_required']} days",
+            inline=False
+        )
+
+    if not embed.fields:
+        embed.description = "No training records found."
+
+    await interaction.response.send_message(embed=embed)
+
 # GM Commands
 @bot.tree.command(name="count_session", description="[GM] Add sessions to a player")
 @app_commands.describe(player="The player to give sessions to", amount="Amount of sessions to add")
