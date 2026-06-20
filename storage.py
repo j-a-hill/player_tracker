@@ -420,15 +420,15 @@ class PlayerStorage:
             return []
         
         try:
-            records = self.training_sheet.get_all_records()
+            records = self.training_sheet.get_all_records(numericise_ignore=['all'])
             training = []
             for idx, record in enumerate(records, start=2):
-                if str(record.get('Player ID')) == str(player_id):
+                if str(record.get('Player ID', '')).strip() == str(player_id).strip():
                     training.append({
                         'training_type': record.get('Training Type', ''),
                         'skill_or_language': record.get('Skill/Language', ''),
-                        'days_spent': int(record.get('Days Spent', 0)),
-                        'days_required': int(record.get('Days Required', 100)),
+                        'days_spent': int(record.get('Days Spent') or 0),
+                        'days_required': int(record.get('Days Required') or 100),
                         'status': record.get('Status', 'In Progress'),
                         'row': idx
                     })
@@ -592,7 +592,7 @@ class PlayerStorage:
     def get_inn_config(self, player_id: str) -> Dict:
         """Get inn configuration for a player."""
         if not hasattr(self, 'inn_sheet') or not self.inn_sheet:
-            return {'exempt': False, 'custom_cost': None}
+            return {'exempt': True, 'custom_cost': None}
         
         try:
             records = self.inn_sheet.get_all_records()
@@ -609,7 +609,7 @@ class PlayerStorage:
                         'custom_cost': custom_cost,
                         'row': idx
                     }
-            return {'exempt': False, 'custom_cost': None}
+            return {'exempt': True, 'custom_cost': None}
         except Exception as e:
             print(f"Error getting inn config: {e}")
             return {'exempt': False, 'custom_cost': None}
