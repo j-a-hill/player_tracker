@@ -420,15 +420,15 @@ class PlayerStorage:
             return []
         
         try:
-            records = self.training_sheet.get_all_records(numericise_ignore=['all'])
+            records = self.training_sheet.get_all_records(empty2zero=True)
             training = []
             for idx, record in enumerate(records, start=2):
                 if str(record.get('Player ID', '')).strip() == str(player_id).strip():
                     training.append({
                         'training_type': record.get('Training Type', ''),
                         'skill_or_language': record.get('Skill/Language', ''),
-                        'days_spent': int(record.get('Days Spent') or 0),
-                        'days_required': int(record.get('Days Required') or 100),
+                        'days_spent': int(record.get('Days Spent', 0) or 0),
+                        'days_required': int(record.get('Days Required', 100) or 100),
                         'status': record.get('Status', 'In Progress'),
                         'row': idx
                     })
