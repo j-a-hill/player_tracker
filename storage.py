@@ -420,23 +420,47 @@ class PlayerStorage:
             return []
         
         try:
-            records = self.training_sheet.get_all_records(empty2zero=True)
+            rows = self.training_sheet.get_all_values()
+            if len(rows) < 2:
+                return []
+            
+            headers = rows[0]
+            
+            def col(name):
+                try:
+                    return headers.index(name)
+                except ValueError:
+                    return -1
+            
+            def get_cell(row, name, default=''):
+                i = col(name)
+                return row[i].strip() if 0 <= i < len(row) else default
+            
+            def safe_int(val, default=0):
+                try:
+                    return int(float(val)) if val else default
+                except (ValueError, TypeError):
+                    return default
+            
+            player_id_str = str(player_id).strip()
             training = []
-            for idx, record in enumerate(records, start=2):
-                if str(record.get('Player ID', '')).strip() == str(player_id).strip():
-                    training.append({
-                        'training_type': record.get('Training Type', ''),
-                        'skill_or_language': record.get('Skill/Language', ''),
-                        'days_spent': int(record.get('Days Spent', 0) or 0),
-                        'days_required': int(record.get('Days Required', 100) or 100),
-                        'status': record.get('Status', 'In Progress'),
-                        'row': idx
-                    })
+            
+            for row_num, row in enumerate(rows[1:], start=2):
+                if get_cell(row, 'Player ID') != player_id_str:
+                    continue
+                training.append({
+                    'training_type': get_cell(row, 'Training Type'),
+                    'skill_or_language': get_cell(row, 'Skill/Language'),
+                    'days_spent': safe_int(get_cell(row, 'Days Spent'), 0),
+                    'days_required': safe_int(get_cell(row, 'Days Required'), 100),
+                    'status': get_cell(row, 'Status') or 'In Progress',
+                    'row': row_num
+                })
+            
             return training
         except Exception as e:
-            print(f"Error getting player training: {e}")
+            print(f"Error getting training: {e}")
             return []
-    
     def start_training(self, player_id: str, training_type: str, skill_or_language: str, days_required: int = 100):
         """Start training for a player."""
         if not hasattr(self, 'training_sheet') or not self.training_sheet:
@@ -595,43 +619,39 @@ class PlayerStorage:
             return {'exempt': True, 'custom_cost': None}
         
         try:
-            records = self.inn_sheet.get_all_records()
-            for idx, record in enumerate(records, start=2):
-                if str(record.get('Player ID')) == str(player_id):
-                    exempt = str(record.get('Exempt', 'FALSE')).upper() == 'TRUE'
-                    custom_cost = record.get('Custom Cost', '')
-                    try:
-                        custom_cost = int(custom_cost) if custom_cost else None
-                    except (ValueError, TypeError):
-                        custom_cost = None
-                    return {
-                        'exempt': exempt,
-                        'custom_cost': custom_cost,
-                        'row': idx
-                    }
-            return {'exempt': True, 'custom_cost': None}
+            try:
+                cell = self.inn_sheet.find(str(player_id), in_column=1)
+            except gspread.exceptions.CellNotFound:
+                return {'exempt': True, 'custom_cost': None}
+            
+            row_values = self.inn_sheet.row_values(cell.row)
+            exempt = len(row_values) > 1 and str(row_values[1]).strip().upper() == 'TRUE'
+            custom_cost = None
+            if len(row_values) > 2 and row_values[2]:
+                try:
+                    custom_cost = int(float(row_values[2]))
+                except (ValueError, TypeError):
+                    custom_cost = None
+            return {'exempt': exempt, 'custom_cost': custom_cost, 'row': cell.row}
         except Exception as e:
             print(f"Error getting inn config: {e}")
-            return {'exempt': False, 'custom_cost': None}
-    
+            return {'exempt': True, 'custom_cost': None}
     def set_inn_exempt(self, player_id: str, exempt: bool):
         """Set inn exemption for a player."""
         if not hasattr(self, 'inn_sheet') or not self.inn_sheet:
             return False
         
         try:
-            config = self.get_inn_config(player_id)
-            if 'row' in config:
-                # Update existing
-                self.inn_sheet.update_cell(config['row'], 2, 'TRUE' if exempt else 'FALSE')
-            else:
-                # Create new
-                self.inn_sheet.append_row([str(player_id), 'TRUE' if exempt else 'FALSE', ''])
+            exempt_str = 'TRUE' if exempt else 'FALSE'
+            try:
+                cell = self.inn_sheet.find(str(player_id), in_column=1)
+                self.inn_sheet.update_cell(cell.row, 2, exempt_str)
+            except gspread.exceptions.CellNotFound:
+                self.inn_sheet.append_row([str(player_id), exempt_str, ''])
             return True
         except Exception as e:
             print(f"Error setting inn exempt: {e}")
             return False
-    
     def set_inn_custom_cost(self, player_id: str, cost: Optional[int]):
         """Set custom inn cost for a player."""
         if not hasattr(self, 'inn_sheet') or not self.inn_sheet:
