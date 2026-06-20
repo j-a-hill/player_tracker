@@ -387,6 +387,24 @@ async def stop_training(interaction: discord.Interaction, option: str):
     )
 
 
+@stop_training.autocomplete('option')
+async def stop_training_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    """Autocomplete for stop_training - shows the player's active training."""
+    if not storage:
+        return []
+    player_id = str(interaction.user.id)
+    current_training = storage.get_player_training(player_id)
+    choices = [
+        app_commands.Choice(name=t['skill_or_language'], value=t['skill_or_language'])
+        for t in current_training
+        if t['status'] not in ('Complete',) and current.lower() in t['skill_or_language'].lower()
+    ]
+    return choices[:25]
+
+
 # GM Commands
 @bot.tree.command(name="count_session", description="[GM] Add sessions to a player")
 @app_commands.describe(player="The player to give sessions to", amount="Amount of sessions to add")
