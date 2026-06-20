@@ -409,6 +409,22 @@ async def check_in(interaction: discord.Interaction, player: discord.Member):
         )
 
 
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    """Handle application command errors, including permission failures."""
+    if isinstance(error, app_commands.CheckFailure):
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "❌ You need the GM role to use this command.",
+                ephemeral=True
+            )
+    else:
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"❌ An error occurred: {str(error)}",
+                ephemeral=True
+            )
+
 # Run the bot
 if __name__ == '__main__':
     if not TOKEN:
