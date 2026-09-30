@@ -235,7 +235,7 @@ def test_inn_configuration():
     
     # Get default config (not in sheet yet)
     config = storage.get_inn_config(player_id)
-    assert config['exempt'] == False, "Default should not be exempt"
+    assert config['exempt'] == True, "Default should be exempt (checked out)"
     assert config['custom_cost'] is None, "Default should have no custom cost"
     
     # Set exemption

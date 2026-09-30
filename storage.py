@@ -434,7 +434,7 @@ class PlayerStorage:
             
             def get_cell(row, name, default=''):
                 i = col(name)
-                return row[i].strip() if 0 <= i < len(row) else default
+                return str(row[i]).strip() if 0 <= i < len(row) else default
             
             def safe_int(val, default=0):
                 try:
@@ -613,18 +613,35 @@ class PlayerStorage:
             return False
     
     # Inn methods
+    def _find_inn_rows(self, player_id: str) -> List[tuple]:
+        """Return (row_number, row_values) for every Inn row matching player_id.
+
+        Compares column A as trimmed strings rather than using worksheet.find(),
+        which misses IDs stored as numbers/with whitespace and behaves differently
+        across gspread versions (raises vs. returns None). A miss there caused
+        check_in/check_out to append duplicate rows instead of updating.
+        """
+        player_id_str = str(player_id).strip()
+        rows = self.inn_sheet.get_all_values()
+        return [
+            (row_num, row)
+            for row_num, row in enumerate(rows[1:], start=2)
+            if row and str(row[0]).strip() == player_id_str
+        ]
+
     def get_inn_config(self, player_id: str) -> Dict:
         """Get inn configuration for a player."""
         if not hasattr(self, 'inn_sheet') or not self.inn_sheet:
             return {'exempt': True, 'custom_cost': None}
         
         try:
-            try:
-                cell = self.inn_sheet.find(str(player_id), in_column=1)
-            except gspread.exceptions.CellNotFound:
+            matches = self._find_inn_rows(player_id)
+            if not matches:
+                # Players not in the Inn sheet default to checked out (exempt)
                 return {'exempt': True, 'custom_cost': None}
             
-            row_values = self.inn_sheet.row_values(cell.row)
+            # Use the most recent row if duplicates exist
+            row_num, row_values = matches[-1]
             exempt = len(row_values) > 1 and str(row_values[1]).strip().upper() == 'TRUE'
             custom_cost = None
             if len(row_values) > 2 and row_values[2]:
@@ -632,7 +649,7 @@ class PlayerStorage:
                     custom_cost = int(float(row_values[2]))
                 except (ValueError, TypeError):
                     custom_cost = None
-            return {'exempt': exempt, 'custom_cost': custom_cost, 'row': cell.row}
+            return {'exempt': exempt, 'custom_cost': custom_cost, 'row': row_num}
         except Exception as e:
             print(f"Error getting inn config: {e}")
             return {'exempt': True, 'custom_cost': None}
@@ -643,10 +660,12 @@ class PlayerStorage:
         
         try:
             exempt_str = 'TRUE' if exempt else 'FALSE'
-            try:
-                cell = self.inn_sheet.find(str(player_id), in_column=1)
-                self.inn_sheet.update_cell(cell.row, 2, exempt_str)
-            except gspread.exceptions.CellNotFound:
+            matches = self._find_inn_rows(player_id)
+            if matches:
+                # Update every matching row so any existing duplicates stay consistent
+                for row_num, _ in matches:
+                    self.inn_sheet.update_cell(row_num, 2, exempt_str)
+            else:
                 self.inn_sheet.append_row([str(player_id), exempt_str, ''])
             return True
         except Exception as e:
@@ -658,11 +677,12 @@ class PlayerStorage:
             return False
         
         try:
-            config = self.get_inn_config(player_id)
+            matches = self._find_inn_rows(player_id)
             cost_value = str(cost) if cost is not None else ''
-            if 'row' in config:
-                # Update existing
-                self.inn_sheet.update_cell(config['row'], 3, cost_value)
+            if matches:
+                # Update existing (all duplicates, if any)
+                for row_num, _ in matches:
+                    self.inn_sheet.update_cell(row_num, 3, cost_value)
             else:
                 # Create new
                 self.inn_sheet.append_row([str(player_id), 'FALSE', cost_value])
