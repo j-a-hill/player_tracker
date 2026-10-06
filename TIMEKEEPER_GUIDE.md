@@ -28,9 +28,10 @@ start_date: "1492-01-01 08:00:00"
 # Week definition
 days_per_week: 7
 
-# When to send weekly notifications
+# When to run weekly events (real-world time, not in-game)
 notification_day: 0  # 0 = Sunday
-notification_time: "20:00"
+notification_time: "19:00"
+notification_timezone: "Europe/London"  # follows GMT/BST
 
 # Inn charges
 default_inn_cost_copper: 350  # 3.5 gold per week
@@ -53,7 +54,7 @@ training_days_required: 100  # Default downtime training
 
 ### Weekly Events
 
-The timekeeper automatically:
+Every week at the configured real-world time (default **Sunday 19:00 UK time**), the timekeeper automatically:
 - **Charges inn fees** to non-exempt players
 - **Updates training progress** (7 days per week)
 - **Sends notifications** to a designated channel with a summary of charges and training progress

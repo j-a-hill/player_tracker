@@ -13,11 +13,16 @@ start_date: "1492-01-01 08:00:00"
 # Number of in-game days in a week
 days_per_week: 7
 
-# When to send weekly notifications (in-game day of week, 0 = Sunday)
+# When to run weekly events (inn charges, training progress, notification)
+# These are REAL-WORLD times, not in-game times.
+# Day of week: 0 = Sunday, 1 = Monday ... 6 = Saturday
 notification_day: 0
 
-# Notification time (in-game time, 24-hour format)
-notification_time: "20:00"
+# Time of day (24-hour format) in notification_timezone
+notification_time: "19:00"
+
+# IANA timezone; Europe/London follows GMT/BST automatically
+notification_timezone: "Europe/London"
 
 # Inn charges
 # Default weekly inn cost in copper (can be overridden per player)

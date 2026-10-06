@@ -301,6 +301,49 @@ def test_get_all_players():
     print("✓ Get all players test passed")
 
 
+def test_weekly_schedule():
+    """Test real-world weekly schedule (Sunday 19:00 UK time)."""
+    print("Testing weekly schedule...")
+    from datetime import timezone, time as dtime
+    from weekly_schedule import weekly_events_between, parse_notification_time
+    
+    at = parse_notification_time("19:00")
+    assert at == dtime(19, 0)
+    utc = timezone.utc
+    
+    # Winter (GMT): Sunday 2026-01-04 19:00 London == 19:00 UTC
+    events = weekly_events_between(
+        datetime(2026, 1, 4, 18, 58, tzinfo=utc), datetime(2026, 1, 4, 19, 3, tzinfo=utc), 0, at)
+    assert len(events) == 1, f"Expected 1 event in GMT, got {events}"
+    
+    # Summer (BST): Sunday 2026-07-05 19:00 London == 18:00 UTC
+    events = weekly_events_between(
+        datetime(2026, 7, 5, 17, 58, tzinfo=utc), datetime(2026, 7, 5, 18, 3, tzinfo=utc), 0, at)
+    assert len(events) == 1, f"Expected 1 event in BST, got {events}"
+    events = weekly_events_between(
+        datetime(2026, 7, 5, 18, 58, tzinfo=utc), datetime(2026, 7, 5, 19, 3, tzinfo=utc), 0, at)
+    assert events == [], f"19:00 UTC in summer is 20:00 UK, got {events}"
+    
+    # Old behaviour (midnight) no longer fires
+    events = weekly_events_between(
+        datetime(2026, 1, 4, 23, 58, tzinfo=utc), datetime(2026, 1, 5, 0, 3, tzinfo=utc), 0, at)
+    assert events == [], f"Should not fire at midnight, got {events}"
+    
+    # Exactly on the boundary fires once across consecutive checks
+    boundary = datetime(2026, 1, 4, 19, 0, tzinfo=utc)
+    first = weekly_events_between(boundary - timedelta(minutes=5), boundary, 0, at)
+    second = weekly_events_between(boundary, boundary + timedelta(minutes=5), 0, at)
+    assert len(first) + len(second) == 1, "Boundary should fire exactly once"
+    
+    # Bot offline for 2 weeks catches up on both Sundays
+    events = weekly_events_between(
+        datetime(2026, 1, 1, 12, 0, tzinfo=utc), datetime(2026, 1, 15, 12, 0, tzinfo=utc), 0, at)
+    assert len(events) == 2, f"Expected 2 missed events, got {events}"
+    assert all(e.weekday() == 6 and e.hour == 19 for e in events)
+    
+    print("✓ Weekly schedule test passed")
+
+
 def run_tests():
     """Run all tests."""
     print("Running timekeeper, inn, and training tests...\n")
@@ -310,6 +353,7 @@ def run_tests():
     test_timekeeper_data()
     test_inn_configuration()
     test_get_all_players()
+    test_weekly_schedule()
     
     print("\n✅ All tests passed!")
 
