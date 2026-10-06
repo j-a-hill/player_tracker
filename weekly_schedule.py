@@ -3,9 +3,13 @@ Real-world weekly schedule for the Timekeeper's weekly events.
 
 Kept free of discord imports so it can be unit tested.
 """
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from typing import List
-from zoneinfo import ZoneInfo
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:  # Python 3.8
+    from backports.zoneinfo import ZoneInfo
 
 
 def parse_notification_time(value: str) -> time:
@@ -57,3 +61,13 @@ def weekly_events_between(
             events.append(candidate)
         candidate_date += timedelta(days=7)
     return events
+
+
+def game_time_at(event: datetime, now: datetime, game_now: datetime, time_ratio: float) -> datetime:
+    """In-game time at a past real-world event, given the in-game time at `now`.
+
+    Used so caught-up weekly events each report their own week's date.
+    """
+    now_aware = now.astimezone() if now.tzinfo is None else now
+    lag_seconds = (now_aware.astimezone(timezone.utc) - event.astimezone(timezone.utc)).total_seconds()
+    return game_now - timedelta(seconds=max(0.0, lag_seconds) * time_ratio)

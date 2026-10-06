@@ -9,7 +9,7 @@ import os
 from dotenv import load_dotenv
 from storage import PlayerStorage
 from dnd_utils import format_currency
-from weekly_schedule import weekly_events_between, parse_notification_time
+from weekly_schedule import weekly_events_between, parse_notification_time, game_time_at
 from datetime import datetime, timedelta
 import yaml
 from typing import Optional
@@ -164,8 +164,11 @@ async def time_tracker():
             at=parse_notification_time(config.get('notification_time', '19:00')),
             tz_name=config.get('notification_timezone', 'Europe/London'),
         )
-        for _ in due_events:
-            await trigger_weekly_events(new_game_time)
+        for event in due_events:
+            # Each caught-up event reports the in-game time of its own week
+            await trigger_weekly_events(
+                game_time_at(event, current_real_time, new_game_time, time_ratio)
+            )
         
         # Save new times
         storage.set_game_time(format_game_time(new_game_time))
