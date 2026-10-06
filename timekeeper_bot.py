@@ -9,6 +9,7 @@ import os
 from dotenv import load_dotenv
 from storage import PlayerStorage
 from dnd_utils import format_currency
+from weekly_schedule import weekly_events_between, parse_notification_time
 from datetime import datetime, timedelta
 import yaml
 from typing import Optional
@@ -28,7 +29,8 @@ DEFAULT_CONFIG = {
     'start_date': '1492-01-01 08:00:00',
     'days_per_week': 7,
     'notification_day': 0,
-    'notification_time': '20:00',
+    'notification_time': '19:00',
+    'notification_timezone': 'Europe/London',
     'default_inn_cost_copper': 350,
     'training_days_required': 100
 }
@@ -152,15 +154,17 @@ async def time_tracker():
         # Update game time
         new_game_time = game_time + timedelta(seconds=game_elapsed)
         
-        # Check if we crossed a week boundary (more robust method)
-        # Calculate total days from epoch for both times
-        old_total_days = (game_time - datetime(1970, 1, 1)).days
-        new_total_days = (new_game_time - datetime(1970, 1, 1)).days
-        old_weeks = old_total_days // 7
-        new_weeks = new_total_days // 7
-        
-        if new_weeks > old_weeks:
-            # Week boundary crossed, trigger weekly events
+        # Weekly events run on a real-world schedule (default Sunday 19:00 UK time).
+        # Fires once for each scheduled time passed since the last check, so
+        # events missed while the bot was offline are caught up on restart.
+        due_events = weekly_events_between(
+            last_real_time,
+            current_real_time,
+            day=int(config.get('notification_day', 0)),
+            at=parse_notification_time(config.get('notification_time', '19:00')),
+            tz_name=config.get('notification_timezone', 'Europe/London'),
+        )
+        for _ in due_events:
             await trigger_weekly_events(new_game_time)
         
         # Save new times
