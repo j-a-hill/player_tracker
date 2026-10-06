@@ -341,6 +341,15 @@ def test_weekly_schedule():
     assert len(events) == 2, f"Expected 2 missed events, got {events}"
     assert all(e.weekday() == 6 and e.hour == 19 for e in events)
     
+    # Caught-up events each get their own week's in-game time
+    from weekly_schedule import game_time_at
+    now = datetime(2026, 1, 15, 12, 0, tzinfo=utc)
+    game_now = datetime(1492, 3, 1, 12, 0)
+    game_times = [game_time_at(e, now, game_now, 1.0) for e in events]
+    assert game_times[1] - game_times[0] == timedelta(days=7), game_times
+    assert game_times[1] == game_now - (now - events[1]), game_times
+    assert game_time_at(now, now, game_now, 1.0) == game_now
+    
     print("✓ Weekly schedule test passed")
 
 
