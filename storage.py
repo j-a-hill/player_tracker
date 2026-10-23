@@ -5,9 +5,14 @@ import gspread
 from google.oauth2.service_account import Credentials
 import json
 from typing import Dict, List, Optional
+import re
 from datetime import datetime
 
-ADVENTURE_LOG_HEADERS = ['Player ID', 'Name', 'Adventure', 'Ending', 'Date']
+ADVENTURE_LOG_HEADERS = ['Player ID', 'Name', 'Adventure', 'Ending', 'Date', 'Status']
+
+
+class AdventureLogError(Exception):
+    """The adventure log couldn't be read or written, so completion can't be trusted."""
 
 
 class PlayerStorage:
@@ -272,19 +277,19 @@ class PlayerStorage:
             **kwargs: Fields to update (xp, copper, inventory)
         """
         if not self.players_sheet:
-            return
+            return False
             
         try:
             # Use provided player_data if available, otherwise fetch it
             player = player_data if player_data else self.get_player(player_id)
             if not player:
                 print(f"Warning: Player {player_id} not found for update")
-                return
+                return False
             
             row = player.get('row')
             if not row:
                 print(f"Warning: No row number for player {player_id}")
-                return
+                return False
             
             # Collect all updates to do them in a single batch
             updates = []
@@ -300,8 +305,10 @@ class PlayerStorage:
             # Perform batch update if there are any updates
             if updates:
                 self.players_sheet.batch_update(updates)
+            return True
         except Exception as e:
             print(f"Error updating player: {e}")
+            return False
     
     def get_shop_items(self) -> List[Dict]:
         """Get all shop items."""
@@ -744,30 +751,54 @@ class PlayerStorage:
             return []
 
     def has_done_adventure(self, player_id: str, adventure_id: str) -> bool:
-        """True if the player has already finished this adventure."""
-        sheet = getattr(self, 'adventure_log_sheet', None)
-        if not sheet:
-            return False
-        try:
-            for row in sheet.get_all_values()[1:]:
-                if len(row) >= 3 and row[0] == str(player_id) and row[2] == adventure_id:
-                    return True
-            return False
-        except Exception as e:
-            print(f"Error reading adventure log: {e}")
-            return False
+        """True if the player has already started claiming or finished this adventure.
 
-    def log_adventure(self, player_id: str, name: str, adventure_id: str, ending: str) -> bool:
-        """Record that a player finished an adventure, and which ending they got."""
+        Raises AdventureLogError if the log can't be read, so callers never treat
+        "couldn't check" as "not done".
+        """
         sheet = getattr(self, 'adventure_log_sheet', None)
         if not sheet:
+            raise AdventureLogError("AdventureLog sheet is not available")
+        try:
+            rows = sheet.get_all_values()
+        except Exception as e:
+            raise AdventureLogError(f"Could not read AdventureLog: {e}")
+        for row in rows[1:]:
+            if len(row) >= 3 and row[0] == str(player_id) and row[2] == adventure_id:
+                return True
+        return False
+
+    def log_adventure(self, player_id: str, name: str, adventure_id: str,
+                      ending: str, status: str = 'done') -> Optional[int]:
+        """Append a completion row. Returns its row number, or None if it can't be told.
+
+        Raises AdventureLogError if the row couldn't be written.
+        """
+        sheet = getattr(self, 'adventure_log_sheet', None)
+        if not sheet:
+            raise AdventureLogError("AdventureLog sheet is not available")
+        try:
+            result = sheet.append_row([
+                str(player_id), name, adventure_id, ending,
+                datetime.now().strftime('%Y-%m-%d %H:%M'), status
+            ])
+        except Exception as e:
+            raise AdventureLogError(f"Could not write AdventureLog: {e}")
+        try:
+            updated_range = result.get('updates', {}).get('updatedRange', '')
+            match = re.search(r'![A-Z]+(\d+)', updated_range)
+            return int(match.group(1)) if match else None
+        except Exception:
+            return None
+
+    def set_adventure_status(self, row: Optional[int], status: str) -> bool:
+        """Update the Status cell of a log row. Returns False if it couldn't."""
+        sheet = getattr(self, 'adventure_log_sheet', None)
+        if not sheet or not row:
             return False
         try:
-            sheet.append_row([
-                str(player_id), name, adventure_id, ending,
-                datetime.now().strftime('%Y-%m-%d %H:%M')
-            ])
+            sheet.update_cell(row, len(ADVENTURE_LOG_HEADERS), status)
             return True
         except Exception as e:
-            print(f"Error writing adventure log: {e}")
+            print(f"Error updating AdventureLog status: {e}")
             return False

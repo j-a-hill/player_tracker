@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord import app_commands
 import os
 from dotenv import load_dotenv
-from storage import PlayerStorage
+from storage import PlayerStorage, AdventureLogError
 from dnd_utils import format_currency
 import yaml
 from typing import Optional, Dict, List
@@ -334,13 +334,33 @@ async def show_adventure_node(
         # Accumulate all changes to apply in a single update
         updates = {}
         rewards_text = []
+        notice = None
+        has_effects = 'rewards' in node or 'penalties' in node
+        repeatable = is_repeatable(adventure_id)
+        log_row = None
 
-        # Once per player: if this was already finished (e.g. two copies open), no rewards
-        already_done = (not is_repeatable(adventure_id)
-                        and storage.has_done_adventure(user_id, adventure_id))
+        # Once per player. Claim the run in the log *before* paying, so a second
+        # open copy, or a retry after a failure, can never pay out twice.
+        # If the log can't be read or written, pay nothing.
+        apply_effects = True
+        if not repeatable:
+            try:
+                if storage.has_done_adventure(user_id, adventure_id):
+                    apply_effects = False
+                    notice = "You've already done this one, so there's no reward this time."
+                else:
+                    log_row = storage.log_adventure(
+                        user_id, player.get('name', ''), adventure_id, node_id,
+                        status='claimed' if has_effects else 'done'
+                    )
+            except AdventureLogError as e:
+                print(f"Adventure log error for {user_id}/{adventure_id}: {e}")
+                apply_effects = False
+                notice = ("The bot couldn't reach the adventure log, so nothing was paid or "
+                          "recorded. Try this adventure again later.")
         
         # Apply rewards
-        if 'rewards' in node and not already_done:
+        if 'rewards' in node and apply_effects:
             rewards = node['rewards']
             
             if 'gold' in rewards:
@@ -359,7 +379,7 @@ async def show_adventure_node(
                 updates['inventory'] = inventory
         
         # Apply penalties
-        if 'penalties' in node and not already_done:
+        if 'penalties' in node and apply_effects:
             penalties = node['penalties']
             
             if 'gold' in penalties:
@@ -378,13 +398,18 @@ async def show_adventure_node(
                         rewards_text.append(f"⚠️ Could not remove {item} (not in inventory)")
                 updates['inventory'] = inventory
         
-        # Apply all updates in a single call
+        # Apply all updates in a single call. If it fails, the log row stays
+        # 'claimed' so the GM can see it on the AdventureLog tab and settle it by hand.
         if updates:
-            storage.update_player(user_id, player, **updates)
+            if storage.update_player(user_id, player, **updates):
+                if not repeatable:
+                    storage.set_adventure_status(log_row, 'paid')
+            else:
+                print(f"Reward write failed for {user_id}/{adventure_id}; log row {log_row} left as claimed")
+                rewards_text = []
+                notice = ("Your reward didn't save. It's been noted on the adventure log, "
+                          "so ask the GM to sort it out.")
 
-        if not already_done:
-            storage.log_adventure(user_id, player.get('name', ''), adventure_id, node_id)
-        
         if rewards_text:
             embed.add_field(
                 name="📊 Results",
@@ -392,10 +417,7 @@ async def show_adventure_node(
                 inline=False
             )
         
-        if already_done:
-            embed.set_footer(text="You've already done this one, so there's no reward this time.")
-        else:
-            embed.set_footer(text="Adventure complete")
+        embed.set_footer(text=notice or "Adventure complete")
         
         # Send final message without buttons
         if is_followup:
@@ -463,7 +485,17 @@ async def adventure(interaction: discord.Interaction, adventure_name: str):
     adventure = adventures['adventures'][adventure_id]
     start_node = adventure['start_node']
 
-    if not is_repeatable(adventure_id) and storage.has_done_adventure(str(interaction.user.id), adventure_id):
+    try:
+        done = (not is_repeatable(adventure_id)
+                and storage.has_done_adventure(str(interaction.user.id), adventure_id))
+    except AdventureLogError as e:
+        print(f"Adventure log error: {e}")
+        await interaction.response.send_message(
+            "The bot couldn't reach the adventure log just now. Try again in a minute.",
+            ephemeral=True
+        )
+        return
+    if done:
         await interaction.response.send_message(
             f"You've already done **{adventure['name']}**. Each adventure can only be done once.",
             ephemeral=True
