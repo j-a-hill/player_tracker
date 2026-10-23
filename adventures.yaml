@@ -1,180 +1,147 @@
+# Downtime adventures for Tales from Fellgard.
+# Each one can be done once per player unless it has `repeatable: true`.
+# Rewards: gold (decimals allowed, e.g. 0.5 = 5 sp) and items. There is no XP;
+# levels come from sessions played.
+
 adventures:
-  mysterious_stranger:
-    name: The Mysterious Stranger
-    description: A cloaked figure approaches you in the tavern
+  night_watch:
+    name: A Night on the Wall
+    description: Hedda is short of soldiers. Stand a night's watch at the north-east corner of the fort.
     start_node: intro
     nodes:
       intro:
-        text: A mysterious cloaked figure approaches you in the dimly lit tavern. They slide a sealed letter across the table without a word. What do you do?
+        text: >-
+          Hedda can't spare a soldier for the north-east corner, so she's asked you to
+          take the night there. You stand on the palisade where it meets the old wall,
+          with the empty wooden lookout on the slope in front of you. The fire in the
+          refugee camp burns down and the courtyard goes quiet. Some time past
+          midnight you see someone outside the fort, below you on the slope, going
+          down through the scrub and pines towards the river with their hood up.
         choices:
-          - label: Open the letter
-            emoji: 📜
-            next: open_letter
-          - label: Question the stranger
-            emoji: ❓
-            next: question_stranger
-          - label: Ignore them
-            emoji: 🚫
-            next: ignore
-      open_letter:
-        text: The letter reveals a treasure map with cryptic symbols. The stranger whispers "Follow it if you dare" before vanishing. You gain a Treasure Map!
+          - label: Shout a challenge
+            next: challenge
+          - label: Go after them
+            next: follow
+          - label: Keep still and watch
+            next: watch
+      challenge:
+        text: >-
+          Your shout carries across the slope. The figure stops for a moment, then
+          drops out of sight among the pines. Nobody comes back up the slope before
+          dawn. In the morning Hedda hears you out and asks how tall they were and how
+          they moved. She doesn't say much else, and pays you for the night.
         rewards:
-          items:
-            - Treasure Map
+          gold: 0.5
         is_end: true
-      question_stranger:
-        text: The stranger smiles and says "Your curiosity is admirable." They toss you a pouch of gold coins. "Perhaps we'll meet again." You gain 50 gold!
+      follow:
+        text: >-
+          By the time you're down off the wall and out of the gate, there's no sign of
+          them. You pick your way down to the river in the dark. You can hear the
+          water, and once, somewhere downstream, footsteps on stone. Then nothing. You
+          climb back up cold and wet to the knees. Hedda pays you for the night and
+          tells you not to leave your post again.
         rewards:
-          gold: 50
+          gold: 0.5
         is_end: true
-      ignore:
-        text: The stranger sighs, disappointed. "Very well." They take back the letter and leave. You missed an opportunity.
+      watch:
+        text: >-
+          You keep still. The figure goes into the trees and you lose them. About an
+          hour before dawn someone comes back up the slope the same way, hood still
+          up, and you lose sight of them behind the palisade. In the morning you
+          collect your pay from Hedda.
+        rewards:
+          gold: 0.5
         is_end: true
 
-  goblin_ambush:
-    name: Goblin Ambush
-    description: Goblins attack on the road!
-    start_node: ambush
+  hilds_well:
+    name: Ribbons at the Bridge
+    description: Walk down to the stone bridge below the fort, where people tie ribbons to the rowan by the well.
+    start_node: intro
     nodes:
-      ambush:
-        text: While traveling down a forest road, three goblins leap from the bushes! They demand your gold. What do you do?
+      intro:
+        text: >-
+          The road to Hartholt crosses the Wyrm on a stone bridge below the fort.
+          Beside it is Hild's Well, a stone-lined spring under a rowan tree. Faded
+          ribbons hang from every branch you can reach, and the water is cold enough
+          to hurt your teeth. On the flat stone at the lip of the well, someone has
+          laid out pins in neat rows, all pointing the same way.
         choices:
-          - label: Fight them
-            emoji: ⚔️
+          - label: Tie a ribbon and drop in a pin
+            next: offering
+          - label: Pocket the pins
+            next: take
+          - label: Come back after dark and watch
+            next: watch
+      offering:
+        text: >-
+          You tear a strip of cloth, knot it to a low branch and drop a pin into the
+          well. It goes down a long way before you lose sight of it. On your way back
+          up to the fort you look at the stone again. There's one more pin in the last
+          row than there was before.
+        is_end: true
+      take:
+        text: >-
+          You sweep the pins into your hand. They're ordinary dress pins, a few of
+          them bent. That night you sleep badly. In the morning your boots are tied
+          together by the laces, knotted so tight you have to cut them apart, and the
+          pins are gone from your pack.
+        is_end: true
+      watch:
+        text: >-
+          You find a spot among the pines across the road, out of the wind, and wait.
+          Late on, something small comes down the bank. It's no taller than your
+          knee, hunched, with long thin fingers. It starts untying a ribbon from the
+          rowan, quick and careful, and then it sees you. It's gone before you're on
+          your feet. In the morning there's one ribbon fewer on the tree.
+        is_end: true
+
+  stores_rats:
+    name: Rats in the Stores
+    description: Brenna wants something done about whatever is getting into the stores at night.
+    start_node: intro
+    nodes:
+      intro:
+        text: >-
+          Brenna stops you in the courtyard. Something has been at the stores at
+          night. Sacks have been gnawed through, there are oats all over the floor,
+          and the droppings are the size of your thumb. She'll pay two gold to see it
+          stopped.
+        choices:
+          - label: Sit up with a lantern and a club
             next: fight
-          - label: Pay them off (10 gp)
-            emoji: 💰
-            next: pay
+          - label: Find where they get in and block it
+            next: block
+          - label: Buy poison from the herbalist (5 sp)
+            next: poison
             requirement:
-              gold: 10
-          - label: Try to negotiate
-            emoji: 🤝
-            next: negotiate
+              gold: 0.5
       fight:
-        text: You draw your weapon and fight! After a fierce battle, you defeat the goblins and search their belongings. You gain 25 gold and 100 XP!
+        text: >-
+          You wait in the dark with the lantern hooded. Late on, the sacks start to
+          move. Three rats the size of small dogs come out from behind the barrels,
+          and when you uncover the lantern they go for you. You kill two. The third
+          bites you on the way past and gets out through a hole at the foot of the
+          back wall. Brenna looks at the bodies in the morning and pays up.
         rewards:
-          gold: 25
-          xp: 100
+          gold: 2
         is_end: true
-      pay:
-        text: You hand over 10 gold pieces. The goblins laugh and run off. At least you're safe.
+      block:
+        text: >-
+          It takes most of a day shifting barrels. Behind the last of them is a hole
+          at the foot of the wall, worn smooth and big enough to get your fist
+          through. You pack it with stones and daub it with mud. Most of the barrels
+          you moved were empty or nearly so. Brenna checks the wall and pays you.
+        rewards:
+          gold: 2
+        is_end: true
+      poison:
+        text: >-
+          The herbalist in the refugee camp mixes something grey into a twist of cloth
+          and charges you five silver. While he works he asks where you're all headed
+          next, and which way you'll go. The next morning there are four dead rats in
+          the stores, and Brenna pays you.
+        rewards:
+          gold: 2
         penalties:
-          gold: 10
-        is_end: true
-      negotiate:
-        text: You attempt to reason with the goblins, but they're not interested in talk. They attack! In the chaos, you manage to escape but lose 5 gold that fell from your pouch.
-        penalties:
-          gold: 5
-        is_end: true
-
-  lost_child:
-    name: The Lost Child
-    description: A child needs your help in the woods
-    start_node: encounter
-    nodes:
-      encounter:
-        text: You hear sobbing in the forest. A young child sits alone, crying. "I'm lost and scared! Can you help me find my way home?"
-        choices:
-          - label: Help them find home
-            emoji: 🏡
-            next: help_home
-          - label: Give them food and directions
-            emoji: 🍞
-            next: give_food
-            requirement:
-              items:
-                - Rations
-          - label: Keep walking
-            emoji: 👣
-            next: walk_away
-      help_home:
-        text: You spend several hours helping the child navigate back to their village. The grateful parents reward you with a family heirloom sword and 30 gold pieces!
-        rewards:
-          gold: 30
-          items:
-            - Family Heirloom Sword
-          xp: 50
-        is_end: true
-      give_food:
-        text: You give the child some rations and point them in the right direction. They thank you and run off. You feel good about helping, but wonder if they made it safely. You gain 25 XP for your kindness.
-        rewards:
-          xp: 25
-        penalties:
-          items:
-            - Rations
-        is_end: true
-      walk_away:
-        text: You ignore the child's pleas and continue walking. As you leave, you hear their cries fade into the distance. You feel guilty about your decision.
-        is_end: true
-
-  merchant_deal:
-    name: The Suspicious Deal
-    description: A merchant offers you an unusual bargain
-    start_node: offer
-    nodes:
-      offer:
-        text: A shifty merchant approaches you with a sly grin. "I have a special offer, just for you! This magic ring for only 40 gold pieces. Worth far more, I assure you!"
-        choices:
-          - label: Buy the ring (40 gp)
-            emoji: 💍
-            next: buy_ring
-            requirement:
-              gold: 40
-          - label: Examine it first
-            emoji: 🔍
-            next: examine
-          - label: Refuse the offer
-            emoji: ❌
-            next: refuse
-      buy_ring:
-        text: You hand over the gold and take the ring. Later, you discover it's actually magical! The Ring of Minor Protection grants you a small defensive bonus. You gain a magic item!
-        rewards:
-          items:
-            - Ring of Minor Protection
-        penalties:
-          gold: 40
-        is_end: true
-      examine:
-        text: You inspect the ring carefully and realize it's a fake! You confront the merchant, who nervously offers you 10 gold to keep quiet about his scam. You take the gold and he scurries away.
-        rewards:
-          gold: 10
-          xp: 25
-        is_end: true
-      refuse:
-        text: '"No thanks," you say firmly. The merchant shrugs and moves on to his next mark. You avoided a potential scam, but you''ll never know if the ring was real.'
-        is_end: true
-
-  dragon_egg:
-    name: The Dragon Egg
-    description: You discover a mysterious egg
-    start_node: discovery
-    nodes:
-      discovery:
-        text: While exploring a cave, you stumble upon a large, warm egg covered in scales. It's clearly a dragon egg! What do you do?
-        choices:
-          - label: Take it with you
-            emoji: 🥚
-            next: take_egg
-          - label: Leave it and go
-            emoji: 🚶
-            next: leave_it
-          - label: Destroy it
-            emoji: 💥
-            next: destroy_it
-      take_egg:
-        text: You carefully wrap the egg and take it with you. It might hatch someday! You've gained a Dragon Egg, but be warned - the mother might come looking for it...
-        rewards:
-          items:
-            - Dragon Egg
-          xp: 75
-        is_end: true
-      leave_it:
-        text: You decide not to interfere with nature and leave the egg where it is. As you exit the cave, you see a massive shadow fly overhead. Good choice! You gain 100 XP for your wisdom.
-        rewards:
-          xp: 100
-        is_end: true
-      destroy_it:
-        text: You smash the egg, believing it's better to eliminate a future threat. However, you feel a wave of dread wash over you. Somewhere, a dragon mother roars in fury. You've made a powerful enemy, but you gain 50 XP.
-        rewards:
-          xp: 50
+          gold: 0.5
         is_end: true

@@ -105,7 +105,7 @@ class TestAdventureYAML(unittest.TestCase):
                         self.assertIsInstance(rewards, dict)
                         
                         # Check valid reward types
-                        valid_types = ['gold', 'xp', 'items']
+                        valid_types = ['gold', 'items']
                         for reward_type in rewards.keys():
                             self.assertIn(reward_type, valid_types,
                                          f"Invalid reward type '{reward_type}' in node {node_id} of {adv_id}")
@@ -137,7 +137,7 @@ class TestAdventureYAML(unittest.TestCase):
                         self.assertIsInstance(penalties, dict)
                         
                         # Check valid penalty types
-                        valid_types = ['gold', 'xp', 'items']
+                        valid_types = ['gold', 'items']
                         for penalty_type in penalties.keys():
                             self.assertIn(penalty_type, valid_types,
                                          f"Invalid penalty type '{penalty_type}' in node {node_id} of {adv_id}")
@@ -219,11 +219,11 @@ class TestAdventureYAML(unittest.TestCase):
                            f"Adventure {adv_id} has no reachable end nodes")
     
     def test_example_adventures(self):
-        """Test that example adventures exist and are valid."""
+        """Test that the Dunvale adventures exist."""
         adventures = self.adventures_data.get('adventures', {})
         
         # Check for key example adventures
-        expected_adventures = ['mysterious_stranger', 'goblin_ambush']
+        expected_adventures = ['night_watch', 'hilds_well', 'stores_rats']
         for expected in expected_adventures:
             self.assertIn(expected, adventures,
                          f"Example adventure '{expected}' not found")

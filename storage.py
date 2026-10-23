@@ -5,6 +5,9 @@ import gspread
 from google.oauth2.service_account import Credentials
 import json
 from typing import Dict, List, Optional
+from datetime import datetime
+
+ADVENTURE_LOG_HEADERS = ['Player ID', 'Name', 'Adventure', 'Ending', 'Date']
 
 
 class PlayerStorage:
@@ -143,6 +146,16 @@ class PlayerStorage:
         except gspread.exceptions.WorksheetNotFound:
             self.inn_sheet = self.spreadsheet.add_worksheet('Inn', 100, 10)
             self.inn_sheet.append_row(['Player ID', 'Exempt', 'Custom Cost'])
+
+        # Adventure log: one row per finished adventure, so each can be done once
+        try:
+            self.adventure_log_sheet = self.spreadsheet.worksheet('AdventureLog')
+            existing_data = self.adventure_log_sheet.get_all_values()
+            if not existing_data or len(existing_data) == 0:
+                self.adventure_log_sheet.append_row(ADVENTURE_LOG_HEADERS)
+        except gspread.exceptions.WorksheetNotFound:
+            self.adventure_log_sheet = self.spreadsheet.add_worksheet('AdventureLog', 100, 10)
+            self.adventure_log_sheet.append_row(ADVENTURE_LOG_HEADERS)
         
         try:
             self.shop_sheet = self.spreadsheet.worksheet('Shop')
@@ -729,3 +742,32 @@ class PlayerStorage:
         except Exception as e:
             print(f"Error getting all players: {e}")
             return []
+
+    def has_done_adventure(self, player_id: str, adventure_id: str) -> bool:
+        """True if the player has already finished this adventure."""
+        sheet = getattr(self, 'adventure_log_sheet', None)
+        if not sheet:
+            return False
+        try:
+            for row in sheet.get_all_values()[1:]:
+                if len(row) >= 3 and row[0] == str(player_id) and row[2] == adventure_id:
+                    return True
+            return False
+        except Exception as e:
+            print(f"Error reading adventure log: {e}")
+            return False
+
+    def log_adventure(self, player_id: str, name: str, adventure_id: str, ending: str) -> bool:
+        """Record that a player finished an adventure, and which ending they got."""
+        sheet = getattr(self, 'adventure_log_sheet', None)
+        if not sheet:
+            return False
+        try:
+            sheet.append_row([
+                str(player_id), name, adventure_id, ending,
+                datetime.now().strftime('%Y-%m-%d %H:%M')
+            ])
+            return True
+        except Exception as e:
+            print(f"Error writing adventure log: {e}")
+            return False
