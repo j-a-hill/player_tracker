@@ -12,6 +12,13 @@ The Adventure Bot allows you to:
 - Set requirements (e.g., need gold to bribe, need items to help)
 - Use buttons for an engaging player experience
 
+## Fellgard rules
+
+- **Once each.** A player can finish each adventure once. Finished runs are logged on the `AdventureLog` tab of the sheet (player, adventure, which ending, date), so you can see who saw what. Add `repeatable: true` to an adventure to allow repeats. To let someone redo one, delete their row.
+- **Status column.** `paid` or `done` is normal. `claimed` means the reward didn't save, so pay it by hand (e.g. `/add_gold`) and change the row to `paid`. If the bot can't read the log at all, it pays nothing and tells the player to try later.
+- **No XP.** Levels come from sessions played. An `xp` reward is ignored; it used to write into the Sessions column.
+- **Coin.** `gold` can be a decimal: `0.5` is 5 sp, `0.05` is 5 cp.
+
 ## Player Commands
 
 ### `/adventure <name>`

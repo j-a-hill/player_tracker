@@ -7,7 +7,8 @@ from discord.ext import commands
 from discord import app_commands
 import os
 from dotenv import load_dotenv
-from storage import PlayerStorage
+from storage import PlayerStorage, AdventureLogError
+from dnd_utils import format_currency
 import yaml
 from typing import Optional, Dict, List
 import asyncio
@@ -67,6 +68,15 @@ def load_adventures(config_file: str = 'adventures.yaml'):
     except Exception as e:
         print(f"Error loading adventures: {e}")
         adventures = {'adventures': {}}
+
+
+def gold_to_copper(gold) -> int:
+    """Convert a gold amount from the YAML (decimals allowed) to whole copper."""
+    return int(round(float(gold) * 100))
+
+
+def is_repeatable(adventure_id: str) -> bool:
+    return bool(adventures.get('adventures', {}).get(adventure_id, {}).get('repeatable', False))
 
 
 def create_example_adventures():
@@ -245,10 +255,10 @@ class AdventureView(discord.ui.View):
                 if 'gold' in req:
                     # Convert copper to gold for comparison
                     player_gold = player['copper'] / 100
-                    if player_gold < req['gold']:
+                    if player['copper'] < gold_to_copper(req['gold']):
                         self.processed = False  # Reset if requirement not met
                         await interaction.response.send_message(
-                            f"❌ You don't have enough gold! (Need {req['gold']} gp, have {player_gold:.1f} gp)",
+                            f"❌ You don't have enough coin! (Need {format_currency(gold_to_copper(req['gold']))}, have {format_currency(player['copper'])})",
                             ephemeral=True
                         )
                         return
@@ -324,19 +334,42 @@ async def show_adventure_node(
         # Accumulate all changes to apply in a single update
         updates = {}
         rewards_text = []
+        notice = None
+        has_effects = 'rewards' in node or 'penalties' in node
+        repeatable = is_repeatable(adventure_id)
+        log_row = None
+
+        # Once per player. Claim the run in the log *before* paying, so a second
+        # open copy, or a retry after a failure, can never pay out twice.
+        # If the log can't be read or written, pay nothing.
+        apply_effects = True
+        if not repeatable:
+            try:
+                if storage.has_done_adventure(user_id, adventure_id):
+                    apply_effects = False
+                    notice = "You've already done this one, so there's no reward this time."
+                else:
+                    log_row = storage.log_adventure(
+                        user_id, player.get('name', ''), adventure_id, node_id,
+                        status='claimed' if has_effects else 'done'
+                    )
+            except AdventureLogError as e:
+                print(f"Adventure log error for {user_id}/{adventure_id}: {e}")
+                apply_effects = False
+                notice = ("The bot couldn't reach the adventure log, so nothing was paid or "
+                          "recorded. Try this adventure again later.")
         
         # Apply rewards
-        if 'rewards' in node:
+        if 'rewards' in node and apply_effects:
             rewards = node['rewards']
             
             if 'gold' in rewards:
-                copper_to_add = rewards['gold'] * 100
+                copper_to_add = gold_to_copper(rewards['gold'])
                 updates['copper'] = player['copper'] + copper_to_add
-                rewards_text.append(f"💰 +{rewards['gold']} gp")
+                rewards_text.append(f"💰 +{format_currency(copper_to_add)}")
             
-            if 'xp' in rewards:
-                updates['xp'] = player['xp'] + rewards['xp']
-                rewards_text.append(f"⭐ +{rewards['xp']} XP")
+            # 'xp' is deliberately ignored: levels come from sessions played,
+            # and the old XP reward wrote straight into the Sessions column.
             
             if 'items' in rewards:
                 inventory = player['inventory'].copy()
@@ -346,19 +379,14 @@ async def show_adventure_node(
                 updates['inventory'] = inventory
         
         # Apply penalties
-        if 'penalties' in node:
+        if 'penalties' in node and apply_effects:
             penalties = node['penalties']
             
             if 'gold' in penalties:
-                copper_to_remove = penalties['gold'] * 100
+                copper_to_remove = gold_to_copper(penalties['gold'])
                 current_copper = updates.get('copper', player['copper'])
                 updates['copper'] = max(0, current_copper - copper_to_remove)
-                rewards_text.append(f"💸 -{penalties['gold']} gp")
-            
-            if 'xp' in penalties:
-                current_xp = updates.get('xp', player['xp'])
-                updates['xp'] = max(0, current_xp - penalties['xp'])
-                rewards_text.append(f"📉 -{penalties['xp']} XP")
+                rewards_text.append(f"💸 -{format_currency(copper_to_remove)}")
             
             if 'items' in penalties:
                 inventory = updates.get('inventory', player['inventory'].copy())
@@ -370,10 +398,18 @@ async def show_adventure_node(
                         rewards_text.append(f"⚠️ Could not remove {item} (not in inventory)")
                 updates['inventory'] = inventory
         
-        # Apply all updates in a single call
+        # Apply all updates in a single call. If it fails, the log row stays
+        # 'claimed' so the GM can see it on the AdventureLog tab and settle it by hand.
         if updates:
-            storage.update_player(user_id, player, **updates)
-        
+            if storage.update_player(user_id, player, **updates):
+                if not repeatable:
+                    storage.set_adventure_status(log_row, 'paid')
+            else:
+                print(f"Reward write failed for {user_id}/{adventure_id}; log row {log_row} left as claimed")
+                rewards_text = []
+                notice = ("Your reward didn't save. It's been noted on the adventure log, "
+                          "so ask the GM to sort it out.")
+
         if rewards_text:
             embed.add_field(
                 name="📊 Results",
@@ -381,7 +417,7 @@ async def show_adventure_node(
                 inline=False
             )
         
-        embed.set_footer(text="Adventure Complete!")
+        embed.set_footer(text=notice or "Adventure complete")
         
         # Send final message without buttons
         if is_followup:
@@ -448,6 +484,23 @@ async def adventure(interaction: discord.Interaction, adventure_name: str):
     
     adventure = adventures['adventures'][adventure_id]
     start_node = adventure['start_node']
+
+    try:
+        done = (not is_repeatable(adventure_id)
+                and storage.has_done_adventure(str(interaction.user.id), adventure_id))
+    except AdventureLogError as e:
+        print(f"Adventure log error: {e}")
+        await interaction.response.send_message(
+            "The bot couldn't reach the adventure log just now. Try again in a minute.",
+            ephemeral=True
+        )
+        return
+    if done:
+        await interaction.response.send_message(
+            f"You've already done **{adventure['name']}**. Each adventure can only be done once.",
+            ephemeral=True
+        )
+        return
     
     # Show the first node
     await show_adventure_node(
@@ -557,7 +610,7 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(
         name="📖 Player Commands",
         value=(
-            "`/adventure <name>` - Start an adventure\n"
+            "`/adventure <name>` - Start an adventure (once each)\n"
             "`/adventure_list` - View all available adventures"
         ),
         inline=False
@@ -579,7 +632,7 @@ async def help_command(interaction: discord.Interaction):
             "Edit this file to create custom adventures with:\n"
             "• Story prompts and choices\n"
             "• Multiple decision paths\n"
-            "• Rewards (gold, XP, items)\n"
+            "• Rewards (gold, items)\n"
             "• Penalties for bad choices\n"
             "• Requirements (e.g., need gold to bribe)"
         ),
