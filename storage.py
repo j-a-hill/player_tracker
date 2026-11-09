@@ -15,6 +15,25 @@ class AdventureLogError(Exception):
     """The adventure log couldn't be read or written, so completion can't be trusted."""
 
 
+class PlayerLookupError(Exception):
+    """The Players sheet couldn't be read, so we can't tell whether a player exists.
+
+    Raised instead of returning None so callers never create a duplicate row
+    for a player who is already on the sheet.
+    """
+
+
+PLAYER_HEADERS = ['Player ID', 'Name', 'Sessions', 'Copper', 'Inventory']
+
+
+def _normalise_id(value) -> str:
+    """Discord IDs as comparable strings: trimmed, and without a '.0' left by Sheets."""
+    text = str(value).strip()
+    if text.endswith('.0') and text[:-2].isdigit():
+        text = text[:-2]
+    return text
+
+
 class PlayerStorage:
     """Manages player data in Google Sheets."""
     
@@ -185,88 +204,124 @@ class PlayerStorage:
             self.shop_sheet.append_row(['Sword', '100', 'gp', 'A basic sword', '5'])
             self.shop_sheet.append_row(['Shield', '80', 'gp', 'A basic shield', '5'])
     
+    def _find_player_rows(self, player_id: str) -> List[tuple]:
+        """Return (row_number, row_values) for every Players row with this Discord ID.
+
+        Reads raw cell values and compares trimmed strings, so an ID with stray
+        whitespace or stored as a number still matches. Lets read errors through:
+        callers must not mistake "couldn't read the sheet" for "no such player".
+        """
+        wanted = _normalise_id(player_id)
+        rows = self.players_sheet.get_all_values()
+        return [
+            (row_num, row)
+            for row_num, row in enumerate(rows[1:], start=2)
+            if row and _normalise_id(row[0]) == wanted
+        ]
+
+    @staticmethod
+    def _player_from_row(row_num: int, row: List) -> Dict:
+        """Build a player dict from a raw Players row (columns A-E)."""
+        def cell(i, default=''):
+            return row[i] if i < len(row) else default
+
+        def safe_int(value):
+            try:
+                return int(float(value))
+            except (ValueError, TypeError):
+                return 0
+
+        inventory = cell(4, '[]')
+        try:
+            inventory = json.loads(inventory) if inventory else []
+        except (json.JSONDecodeError, TypeError):
+            inventory = []
+
+        return {
+            'player_id': _normalise_id(cell(0)),
+            'name': cell(1),
+            'xp': safe_int(cell(2)),
+            'copper': safe_int(cell(3)),
+            'inventory': inventory,
+            'row': row_num
+        }
+
     def get_player(self, player_id: str) -> Optional[Dict]:
-        """Get player data by Discord ID."""
+        """Get player data by Discord ID.
+
+        Returns None if the player isn't on the sheet, or if the sheet can't be
+        read (logged). Use get_or_create_player when a missing player should be
+        added: it raises on read errors rather than guessing.
+        """
         if not self.players_sheet:
             return None
-            
+
         try:
-            records = self.players_sheet.get_all_records()
-            for idx, record in enumerate(records, start=2):  # Start at 2 (header is row 1)
-                if str(record.get('Player ID')) == str(player_id):
-                    inventory = record.get('Inventory', '[]')
-                    if isinstance(inventory, str):
-                        try:
-                            inventory = json.loads(inventory) if inventory else []
-                        except json.JSONDecodeError:
-                            inventory = []
-                    
-                    try:
-                        xp = int(record.get('Sessions', record.get('XP', 0)))
-                    except (ValueError, TypeError):
-                        xp = 0
-                    
-                    # Get copper value (single currency field)
-                    try:
-                        copper = int(record.get('Copper', 0))
-                    except (ValueError, TypeError):
-                        copper = 0
-                    
-                    return {
-                        'player_id': str(record.get('Player ID')),
-                        'name': record.get('Name', ''),
-                        'xp': xp,
-                        'copper': copper,
-                        'inventory': inventory,
-                        'row': idx
-                    }
-            return None
+            matches = self._find_player_rows(player_id)
         except Exception as e:
             print(f"Error getting player: {e}")
             return None
-    
-    def create_player(self, player_id: str, name: str) -> Dict:
-        """Create a new player."""
+        if not matches:
+            return None
+        if len(matches) > 1:
+            print(f"Warning: {len(matches)} Players rows for {player_id} "
+                  f"(rows {[m[0] for m in matches]}); using row {matches[0][0]}")
+        return self._player_from_row(*matches[0])
+
+    def get_or_create_player(self, player_id: str, name: str) -> Dict:
+        """Find a player by Discord ID, adding a row only if the ID isn't on the sheet.
+
+        The Discord ID is the only key. If the player's display name has changed,
+        the Name cell on their existing row is updated; no new row is written.
+
+        Raises PlayerLookupError if the sheet can't be read, so a rate limit or
+        network blip can never create a duplicate row.
+        """
         if not self.players_sheet:
-            return {
-                'player_id': player_id,
-                'name': name,
-                'xp': 0,
-                'copper': 0,
-                'inventory': []
-            }
-            
-        try:
-            # Append the new player row - this is an atomic operation
-            self.players_sheet.append_row([str(player_id), name, 0, 0, '[]'])
-            
-            # Get the actual row number by counting existing rows after append
-            # This is more reliable than using row_count which includes empty rows
-            # Note: We get the row count AFTER appending to ensure we capture the row
-            # where our data was actually placed. This approach is safe because:
-            # 1. append_row is atomic and places data in the first empty row
-            # 2. get_all_values() returns all rows up to the last row with data
-            # 3. Since we just appended, our row is the last row with data
-            next_row = len(self.players_sheet.get_all_values())
-            
             return {
                 'player_id': str(player_id),
                 'name': name,
                 'xp': 0,
                 'copper': 0,
-                'inventory': [],
-                'row': next_row  # Include row number for immediate updates
-            }
-        except Exception as e:
-            print(f"Error creating player: {e}")
-            return {
-                'player_id': player_id,
-                'name': name,
-                'xp': 0,
-                'copper': 0,
                 'inventory': []
             }
-    
+
+        try:
+            matches = self._find_player_rows(player_id)
+        except Exception as e:
+            raise PlayerLookupError(f"Couldn't read the Players sheet: {e}") from e
+
+        if matches:
+            if len(matches) > 1:
+                print(f"Warning: {len(matches)} Players rows for {player_id} "
+                      f"(rows {[m[0] for m in matches]}); using row {matches[0][0]}")
+            player = self._player_from_row(*matches[0])
+            if name and player['name'] != name:
+                try:
+                    self.players_sheet.update_cell(player['row'], 2, name)
+                    player['name'] = name
+                except Exception as e:
+                    # A stale name is harmless; carry on with the existing row.
+                    print(f"Could not update name for {player_id}: {e}")
+            return player
+
+        self.players_sheet.append_row([str(player_id), name, 0, 0, '[]'])
+        # Row number counted after the append (see BUG_FIXES.md, bug 1).
+        next_row = len(self.players_sheet.get_all_values())
+        return {
+            'player_id': str(player_id),
+            'name': name,
+            'xp': 0,
+            'copper': 0,
+            'inventory': [],
+            'row': next_row
+        }
+
+    def create_player(self, player_id: str, name: str) -> Dict:
+        """Kept for older callers. Same as get_or_create_player: never adds a
+        second row for an ID that's already on the sheet."""
+        return self.get_or_create_player(player_id, name)
+
     def update_player(self, player_id: str, player_data: Optional[Dict] = None, **kwargs):
         """
         Update player data.

@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord import app_commands
 import os
 from dotenv import load_dotenv
-from storage import PlayerStorage, AdventureLogError
+from storage import PlayerStorage, AdventureLogError, PlayerLookupError
 from dnd_utils import format_currency
 import yaml
 from typing import Optional, Dict, List
@@ -245,9 +245,15 @@ class AdventureView(discord.ui.View):
             
             # Check requirements if any
             if 'requirement' in choice:
-                player = storage.get_player(self.user_id)
-                if not player:
-                    player = storage.create_player(self.user_id, interaction.user.display_name)
+                try:
+                    player = storage.get_or_create_player(self.user_id, interaction.user.display_name)
+                except PlayerLookupError as e:
+                    print(f"Player lookup failed for {self.user_id}: {e}")
+                    self.processed = False
+                    await interaction.response.send_message(
+                        "Couldn't reach the tracker sheet just now, so nothing was changed. Try again in a minute.", ephemeral=True
+                    )
+                    return
                 
                 req = choice['requirement']
                 
@@ -327,9 +333,15 @@ async def show_adventure_node(
     
     # Process rewards/penalties if this is an end node
     if node.get('is_end', False):
-        player = storage.get_player(user_id)
-        if not player:
-            player = storage.create_player(user_id, interaction.user.display_name)
+        try:
+            player = storage.get_or_create_player(user_id, interaction.user.display_name)
+        except PlayerLookupError as e:
+            print(f"Player lookup failed for {user_id}: {e}")
+            response_method = interaction.response if not is_followup else interaction.followup
+            await response_method.send_message(
+                "Couldn't reach the tracker sheet just now, so nothing was changed. Try again in a minute.", ephemeral=True
+            )
+            return
         
         # Accumulate all changes to apply in a single update
         updates = {}

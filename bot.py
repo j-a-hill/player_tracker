@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord import app_commands
 import os
 from dotenv import load_dotenv
-from storage import PlayerStorage
+from storage import PlayerStorage, PlayerLookupError
 from dnd_utils import (
     get_level_from_xp, 
     get_xp_progress, 
@@ -90,10 +90,7 @@ async def profile(interaction: discord.Interaction):
         return
     
     player_id = str(interaction.user.id)
-    player = storage.get_player(player_id)
-    
-    if not player:
-        player = storage.create_player(player_id, interaction.user.display_name)
+    player = storage.get_or_create_player(player_id, interaction.user.display_name)
     
     # Calculate level and progress
     level, current_level_xp, next_level_xp, progress, sessions_to_next = get_xp_progress(player['xp'])
@@ -150,10 +147,7 @@ async def inventory(interaction: discord.Interaction):
         return
     
     player_id = str(interaction.user.id)
-    player = storage.get_player(player_id)
-    
-    if not player:
-        player = storage.create_player(player_id, interaction.user.display_name)
+    player = storage.get_or_create_player(player_id, interaction.user.display_name)
     
     embed = discord.Embed(
         title=f"🎒 {player['name']}'s Inventory",
@@ -268,10 +262,7 @@ async def start_training(
         return
     
     player_id = str(interaction.user.id)
-    player = storage.get_player(player_id)
-    
-    if not player:
-        player = storage.create_player(player_id, interaction.user.display_name)
+    player = storage.get_or_create_player(player_id, interaction.user.display_name)
     
     # Check if option exists in either skills or languages
     skills = storage.get_training_options('skill')
@@ -472,10 +463,7 @@ async def count_session(interaction: discord.Interaction, player: discord.Member
         return
     
     player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
+    player_data = storage.get_or_create_player(player_id, player.display_name)
     
     old_xp = player_data['xp']
     new_xp = old_xp + amount
@@ -529,10 +517,7 @@ async def remove_session(interaction: discord.Interaction, player: discord.Membe
         return
     
     player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
+    player_data = storage.get_or_create_player(player_id, player.display_name)
     
     old_xp = player_data['xp']
     new_xp = max(0, old_xp - amount)
@@ -576,10 +561,7 @@ async def add_gold(interaction: discord.Interaction, player: discord.Member, amo
         return
     
     player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
+    player_data = storage.get_or_create_player(player_id, player.display_name)
     
     # Convert to copper and add
     copper_to_add = parse_currency_input(amount, currency_type)
@@ -611,10 +593,7 @@ async def remove_gold(interaction: discord.Interaction, player: discord.Member, 
         return
     
     player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
+    player_data = storage.get_or_create_player(player_id, player.display_name)
     
     # Convert to copper and remove
     copper_to_remove = parse_currency_input(amount, currency_type)
@@ -637,10 +616,7 @@ async def give_item(interaction: discord.Interaction, player: discord.Member, it
         return
     
     player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
+    player_data = storage.get_or_create_player(player_id, player.display_name)
     
     inventory = player_data['inventory']
     inventory.append(item)
@@ -751,6 +727,21 @@ async def help_command(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed)
 
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    """Tell the user when the tracker sheet couldn't be read, rather than failing silently."""
+    original = getattr(error, 'original', error)
+    if isinstance(original, PlayerLookupError):
+        print(f"Player lookup failed: {original}")
+        message = "❌ Couldn't reach the tracker sheet just now, so nothing was changed. Try again in a minute."
+    else:
+        message = f"❌ An error occurred: {str(error)}"
+    if not interaction.response.is_done():
+        await interaction.response.send_message(message, ephemeral=True)
+    else:
+        await interaction.followup.send(message, ephemeral=True)
 
 # Run the bot
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord import app_commands
 import os
 from dotenv import load_dotenv
-from storage import PlayerStorage
+from storage import PlayerStorage, PlayerLookupError
 from dnd_utils import format_currency, parse_currency_input
 from typing import Optional
 
@@ -153,10 +153,7 @@ async def buy(interaction: discord.Interaction, item: str, quantity: int = 1):
     
     # Get player data
     player_id = str(interaction.user.id)
-    player = storage.get_player(player_id)
-    
-    if not player:
-        player = storage.create_player(player_id, interaction.user.display_name)
+    player = storage.get_or_create_player(player_id, interaction.user.display_name)
     
     # Calculate total cost
     total_cost = shop_item['price'] * quantity
@@ -343,6 +340,21 @@ async def help_command(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed)
 
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    """Tell the user when the tracker sheet couldn't be read, rather than failing silently."""
+    original = getattr(error, 'original', error)
+    if isinstance(original, PlayerLookupError):
+        print(f"Player lookup failed: {original}")
+        message = "❌ Couldn't reach the tracker sheet just now, so nothing was changed. Try again in a minute."
+    else:
+        message = f"❌ An error occurred: {str(error)}"
+    if not interaction.response.is_done():
+        await interaction.response.send_message(message, ephemeral=True)
+    else:
+        await interaction.followup.send(message, ephemeral=True)
 
 # Run the bot
 if __name__ == '__main__':
