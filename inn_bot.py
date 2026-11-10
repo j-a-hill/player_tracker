@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord import app_commands
 import os
 from dotenv import load_dotenv
-from storage import PlayerStorage
+from storage import PlayerStorage, PlayerLookupError
 from dnd_utils import format_currency, parse_currency_input
 import yaml
 from typing import Optional
@@ -80,10 +80,7 @@ async def inn_status(interaction: discord.Interaction):
         return
     
     player_id = str(interaction.user.id)
-    player = storage.get_player(player_id)
-    
-    if not player:
-        player = storage.create_player(player_id, interaction.user.display_name)
+    player = storage.get_or_create_player(player_id, interaction.user.display_name)
     
     inn_config = storage.get_inn_config(player_id)
     default_cost = config.get('default_inn_cost_copper', 350)
@@ -152,10 +149,7 @@ async def set_inn_cost(
     if player:
         # Set custom cost for specific player
         player_id = str(player.id)
-        player_data = storage.get_player(player_id)
-        
-        if not player_data:
-            player_data = storage.create_player(player_id, player.display_name)
+        player_data = storage.get_or_create_player(player_id, player.display_name)
         
         success = storage.set_inn_custom_cost(player_id, cost)
         
@@ -191,10 +185,7 @@ async def exempt_player(interaction: discord.Interaction, player: discord.Member
         return
     
     player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
+    player_data = storage.get_or_create_player(player_id, player.display_name)
     
     success = storage.set_inn_exempt(player_id, exempt)
     
@@ -365,9 +356,7 @@ async def check_out(interaction: discord.Interaction, player: discord.Member):
         return
 
     player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
+    player_data = storage.get_or_create_player(player_id, player.display_name)
 
     success = storage.set_inn_exempt(player_id, True)
 
@@ -392,9 +381,7 @@ async def check_in(interaction: discord.Interaction, player: discord.Member):
         return
 
     player_id = str(player.id)
-    player_data = storage.get_player(player_id)
-    if not player_data:
-        player_data = storage.create_player(player_id, player.display_name)
+    player_data = storage.get_or_create_player(player_id, player.display_name)
 
     success = storage.set_inn_exempt(player_id, False)
 
@@ -416,6 +403,13 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         if not interaction.response.is_done():
             await interaction.response.send_message(
                 "❌ You need the GM role to use this command.",
+                ephemeral=True
+            )
+    elif isinstance(getattr(error, 'original', None), PlayerLookupError):
+        print(f"Player lookup failed: {error.original}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "❌ Couldn't reach the tracker sheet just now, so nothing was changed. Try again in a minute.",
                 ephemeral=True
             )
     else:
